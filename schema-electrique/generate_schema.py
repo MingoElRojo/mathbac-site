@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Genere le schema unifilaire de l'etat existant (PDF multi-folios).
+"""Genere le schema unifilaire de l'etat existant.
 
 Usage :
-    python3 generate_schema.py [chemin/de/sortie.pdf]
+    python3 generate_schema.py                      # PDF (defaut)
+    python3 generate_schema.py --format dxf         # DXF, echelle 1:1 en mm
+    python3 generate_schema.py --format dwg         # DWG (via convertisseur)
+    python3 generate_schema.py --format all         # les trois
+    python3 generate_schema.py --out rep/ --format all
 """
 
+import argparse
 import os
 import sys
 
@@ -51,14 +56,63 @@ RESERVES = [
 ]
 
 
-def main():
-    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "out",
-        "Schema_Unifilaire_Etat_Existant.pdf")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    doc = Document(out, data.PROJET, data.VERSION, data.DATE)
+BASENAME = "Schema_Unifilaire_Etat_Existant"
+
+
+def _produire(chemin, backend):
+    doc = Document(chemin, data.PROJET, data.VERSION, data.DATE, backend=backend)
     doc.build(data.TABLEAUX, ENSEMBLES, RESERVES)
-    print("Schéma généré : %s (%d folios + page de garde)" % (out, doc.n_folios))
+    return doc
+
+
+def main():
+    ici = os.path.dirname(os.path.abspath(__file__))
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("sortie", nargs="?", default=None,
+                    help="chemin du fichier de sortie (déduit du format sinon)")
+    ap.add_argument("--format", "-f", default="pdf",
+                    choices=["pdf", "dxf", "dwg", "all"],
+                    help="format à produire (défaut : pdf)")
+    ap.add_argument("--out", "-o", default=os.path.join(ici, "out"),
+                    help="répertoire de sortie")
+    args = ap.parse_args()
+
+    os.makedirs(args.out, exist_ok=True)
+    base = os.path.join(args.out, BASENAME)
+    formats = ["pdf", "dxf", "dwg"] if args.format == "all" else [args.format]
+    # le DWG est produit a partir du DXF : il l'entraine toujours
+    if "dwg" in formats and "dxf" not in formats:
+        formats.insert(0, "dxf")
+
+    chemins = {}
+    for fmt in formats:
+        if fmt == "dwg":
+            continue
+        cible = args.sortie if (args.sortie and len(formats) == 1) \
+            else base + "." + fmt
+        os.makedirs(os.path.dirname(os.path.abspath(cible)), exist_ok=True)
+        doc = _produire(cible, "dxf" if fmt == "dxf" else "pdf")
+        chemins[fmt] = cible
+        print("%-4s : %s (%d folios + page de garde)"
+              % (fmt.upper(), cible, doc.n_folios))
+
+    if "dwg" in formats:
+        from unifilaire import dwg_export
+        cible = args.sortie if (args.sortie and args.format == "dwg") \
+            else base + ".dwg"
+        try:
+            dwg_export.dxf_to_dwg(chemins["dxf"], cible)
+            print("DWG  : %s" % cible)
+            res = dwg_export.verify_dwg(cible, chemins["dxf"])
+            if res.get("verifie"):
+                print("       contrôle aller-retour : %d entités restituées à "
+                      "l'identique" % res["entites"])
+            else:
+                print("       contrôle aller-retour non effectué (%s)"
+                      % res.get("motif"))
+        except dwg_export.ConverterNotFound as exc:
+            print("DWG  : non produit.\n%s" % exc, file=sys.stderr)
+            return 2
     return 0
 
 

@@ -12,12 +12,55 @@ existants** (TGBT, tableaux divisionnaires, disjoncteur d'abonné et comptage En
 
 ```bash
 pip install -r requirements.txt
-python3 generate_schema.py                 # -> out/Schema_Unifilaire_Etat_Existant.pdf
-python3 generate_schema.py /tmp/autre.pdf  # chemin de sortie personnalisé
+python3 generate_schema.py                  # PDF  -> out/…​.pdf
+python3 generate_schema.py --format dxf     # DXF  -> out/…​.dxf   (CAO, 1:1 en mm)
+python3 generate_schema.py --format dwg     # DWG  -> out/…​.dwg   (AutoCAD 2000+)
+python3 generate_schema.py --format all     # les trois
 ```
 
-Aucune dépendance en dehors de ReportLab : tout le tracé (symboles, gabarit,
-mise en folio, pagination) est calculé par le code.
+Le tracé (symboles, gabarit, mise en folio, pagination) est entièrement calculé
+par le code. Le PDF et le DXF sortent du **même code de tracé** : `DxfCanvas`
+expose l'API de `reportlab.pdfgen.canvas`, si bien que le dessin n'est écrit
+qu'une fois et rejoué vers l'un ou l'autre format — les deux fichiers ne peuvent
+pas diverger.
+
+### Sortie CAO (DXF / DWG)
+
+Le DXF est en **millimètres, à l'échelle 1:1** ; un folio du PDF = une page A4
+paysage (297 × 210 mm) dans le fichier CAO.
+
+- **Espace objet** : les 27 folios sont posés sur une grille de 5 colonnes.
+- **Présentations** : une présentation A4 paysage par folio, fenêtre à l'échelle
+  1:1, prête à tracer.
+- **Calques métier** : `SCHEMA`, `SCHEMA_PROBABLE` (liaisons en pointillé),
+  `SYMBOLES`, `TEXTE`, `TEXTE_A_CONFIRMER` (rouge), `TERRE`, `RENVOIS_FOLIO`,
+  `CARTOUCHE`, `TABLEAU_CIRCUITS`, `TRAME`. Chacun porte sa couleur, son type de
+  ligne et son épaisseur : le rendu est correct dès l'ouverture, et les réserves
+  du relevé s'isolent en éteignant un calque.
+- Les aplats gris du PDF ne sont pas repris en CAO : ils masqueraient le dessin.
+
+### Le cas du DWG
+
+Le DWG est un **format propriétaire fermé** : aucune bibliothèque Python ne
+l'écrit. `generate_schema.py --format dwg` produit donc le DXF puis le convertit
+avec un outil externe, cherché automatiquement (variable `DWGWRITE`, puis PATH,
+puis `tools/libredwg`) :
+
+```bash
+bash tools/build_libredwg.sh      # compile dwgwrite / dwgread (GNU LibreDWG)
+python3 generate_schema.py --format dwg
+```
+
+L'ODA File Converter est également reconnu s'il est présent dans le PATH.
+
+Le DWG livré est au format **AutoCAD 2000 (AC1015)**, lu par tous les AutoCAD
+depuis 2000 et par la quasi-totalité des logiciels de CAO. Après conversion, le
+script relit le DWG et compare les entités au DXF source ; la production
+n'est annoncée réussie que si le contrôle passe.
+
+> À défaut de convertisseur, le DXF reste directement exploitable : AutoCAD,
+> BricsCAD, DraftSight, ZWCAD ou LibreCAD l'ouvrent tel quel, et un
+> « Enregistrer sous → DWG » suffit à obtenir le DWG sans aucune perte.
 
 ## Contenu du dossier produit
 
@@ -46,8 +89,9 @@ qui est déduit. Le générateur applique donc :
 ## Organisation du code
 
 ```
-generate_schema.py        point d'entrée : assemble le dossier
+generate_schema.py        point d'entrée : assemble le dossier (--format pdf|dxf|dwg|all)
 data_installation.py      données du relevé (arbre d'appareils par tableau)
+tools/build_libredwg.sh   compile le convertisseur DXF -> DWG
 unifilaire/
   style.py                format de folio, gabarit, couleurs, niveaux de jeux de barres
   symbols.py              symboles CEI : disjoncteur, Vigi, interrupteur, tore, TC,
@@ -57,6 +101,8 @@ unifilaire/
   render.py               tracé d'un tableau sur n folios
   pages.py                folios particuliers : garde, synoptique, origine, réserves
   document.py             assemblage et numérotation des folios
+  dxf_canvas.py           sortie CAO : canvas compatible ReportLab écrivant du DXF
+  dwg_export.py           conversion DXF -> DWG et contrôle d'aller-retour
 ```
 
 ### Modèle de données
