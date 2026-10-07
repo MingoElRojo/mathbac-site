@@ -1957,6 +1957,63 @@ function newTextLegend(needle,word,regex,name){
 --------------------------------------------------------------------------- */
 var SANDBOXED=(function(){ try{ return window.self!==window.top; }catch(e){ return true; } })();
 
+/* Enregistrement des exports.
+   Page publiée : la visionneuse n'autorise aucun téléchargement direct, il faut
+   passer par la capacité « downloads », dont la liste d'extensions ne comprend
+   pas .dxf — on le remet alors dans une archive zip, qui elle est acceptée.
+   Fichier autonome ou site : lien <a download> classique. */
+var DL_PROMISE=(window.claude && window.claude.use)
+  ? window.claude.use("downloads").catch(function(){ return null; })
+  : Promise.resolve(null);
+var DL_OK={gif:1,png:1,jpg:1,jpeg:1,webp:1,mp4:1,webm:1,txt:1,json:1,md:1,docx:1,
+           pptx:1,epub:1,csv:1,ttf:1,html:1,svg:1,pdf:1,xlsx:1,zip:1};
+
+var CRC_T=null;
+function crc32(buf){
+  if(!CRC_T){
+    CRC_T=new Uint32Array(256);
+    for(var n=0;n<256;n++){
+      var c=n;
+      for(var k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      CRC_T[n]=c>>>0;
+    }
+  }
+  var r=0xFFFFFFFF;
+  for(var i=0;i<buf.length;i++) r=CRC_T[(r^buf[i])&0xFF]^(r>>>8);
+  return (r^0xFFFFFFFF)>>>0;
+}
+/* archive zip à une entrée, sans compression */
+function zipOne(name,text){
+  var enc=new TextEncoder(), nb=enc.encode(name), data=enc.encode(text), crc=crc32(data);
+  var lh=new Uint8Array(30+nb.length), a=new DataView(lh.buffer);
+  a.setUint32(0,0x04034b50,true); a.setUint16(4,20,true);
+  a.setUint16(12,0x0021,true);   /* date : 1er janvier 1980 */
+  a.setUint32(14,crc,true); a.setUint32(18,data.length,true); a.setUint32(22,data.length,true);
+  a.setUint16(26,nb.length,true);
+  lh.set(nb,30);
+  var cd=new Uint8Array(46+nb.length), b=new DataView(cd.buffer);
+  b.setUint32(0,0x02014b50,true); b.setUint16(4,20,true); b.setUint16(6,20,true);
+  b.setUint16(14,0x0021,true);
+  b.setUint32(16,crc,true); b.setUint32(20,data.length,true); b.setUint32(24,data.length,true);
+  b.setUint16(28,nb.length,true);
+  cd.set(nb,46);
+  var eo=new Uint8Array(22), c=new DataView(eo.buffer);
+  c.setUint32(0,0x06054b50,true);
+  c.setUint16(8,1,true); c.setUint16(10,1,true);
+  c.setUint32(12,cd.length,true); c.setUint32(16,lh.length+data.length,true);
+  return new Blob([lh,data,cd,eo],{type:"application/zip"});
+}
+function extOf(name){
+  var m=/\.([A-Za-z0-9]+)$/.exec(name);
+  return m?m[1].toLowerCase():"";
+}
+function dlMessage(code,name){
+  if(code==="declined") return "Enregistrement annulé.";
+  if(code==="too_large") return name+" est trop volumineux pour cette visionneuse. Utilisez la version téléchargeable de l'outil.";
+  if(code==="rate_limited") return "Une autre demande d'enregistrement est déjà ouverte. Réessayez dans un instant.";
+  return "Enregistrement impossible ici ("+code+"). La version téléchargeable de l'outil enregistre toujours.";
+}
+
 function toMm(x,y){
   if(src.viewport && src.pageObj){
     var p=src.viewport.convertToPdfPoint(x,y), v=src.pageObj.view;
@@ -1971,7 +2028,20 @@ function sizeOf(bytes){
                        : (Math.round(bytes/1048576*10)/10).toString().replace(".",",")+" Mo";
 }
 
-function saveFile(name,text,mime){
+async function saveFile(name,text,mime){
+  var dl=await DL_PROMISE;
+  if(dl){
+    var fn=name, data=text;
+    if(!DL_OK[extOf(name)]){ fn=name+".zip"; data=zipOne(name,text); }
+    try{
+      await dl.save({filename:fn,data:data});
+      setStatus("Enregistré : "+fn+" ("+sizeOf(text.length||0)+(fn!==name?", dans une archive zip":"")+")",false);
+      return true;
+    }catch(e){
+      setStatus(dlMessage(e&&e.code||"unavailable",fn),false);
+      return false;
+    }
+  }
   var ok=false;
   try{
     var blob=new Blob([text],{type:mime||"text/plain;charset=utf-8"});
@@ -2258,8 +2328,16 @@ function exportPng(){
       g.beginPath(); g.rect(pts[i].x-w/2,pts[i].y-h/2,w,h); g.fill(); g.stroke();
     }
   });
-  cv.toBlob(function(b){
+  cv.toBlob(async function(b){
     if(!b){ setStatus("Export PNG impossible.",false); return; }
+    var dl=await DL_PROMISE;
+    if(dl){
+      try{
+        await dl.save({filename:baseName()+"-annote.png",data:b});
+        setStatus("PNG annoté enregistré ("+sizeOf(b.size)+")",false);
+      }catch(e){ setStatus(dlMessage(e&&e.code||"unavailable","le PNG"),false); }
+      return;
+    }
     try{
       var url=URL.createObjectURL(b), a=document.createElement("a");
       a.href=url; a.download=baseName()+"-annote.png";
