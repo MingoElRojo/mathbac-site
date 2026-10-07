@@ -1,0 +1,2492 @@
+<title>Compteur de légendes CFO CFA</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout : cartouche en bandeau, nomenclature à gauche, calque de dessin au centre, bandeau d'état en pied */
+:root{
+  --bg:#e9ecf0; --surface:#ffffff; --surface-2:#f2f5f8; --stage:#d7dce3; --paper:#ffffff;
+  --ink:#141922; --muted:#5b6673; --rule:#c6cfd9; --rule-soft:#dde3ea;
+  --accent:#0a6b78; --accent-ink:#ffffff; --accent-soft:#dcedef;
+  --good:#1d7a4c; --warn:#9d5610; --crit:#a52440;
+  --shadow:0 1px 2px rgba(20,25,34,.08), 0 8px 24px -12px rgba(20,25,34,.22);
+  --f-ui:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-cond:"IBM Plex Sans Condensed","IBM Plex Sans","Segoe UI Semibold",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1318; --surface:#171d25; --surface-2:#1d242e; --stage:#090c10; --paper:#f4f6f8;
+    --ink:#e2e8ef; --muted:#8e9cad; --rule:#2a323d; --rule-soft:#222a34;
+    --accent:#3fb9c6; --accent-ink:#052229; --accent-soft:#11313a;
+    --good:#45b87a; --warn:#d7943f; --crit:#e4697f;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px -14px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --surface:#171d25; --surface-2:#1d242e; --stage:#090c10; --paper:#f4f6f8;
+  --ink:#e2e8ef; --muted:#8e9cad; --rule:#2a323d; --rule-soft:#222a34;
+  --accent:#3fb9c6; --accent-ink:#052229; --accent-soft:#11313a;
+  --good:#45b87a; --warn:#d7943f; --crit:#e4697f;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px -14px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{height:100%;margin:0;display:flex;background:var(--bg);color:var(--ink);
+  font:400 14px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+#app{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0}
+
+/* ---------- cartouche ---------- */
+.cartouche{flex:0 0 auto;display:flex;align-items:stretch;background:var(--surface);
+  border-bottom:1px solid var(--rule);padding-top:env(safe-area-inset-top,0px)}
+.brand{display:flex;flex-direction:column;justify-content:center;gap:1px;
+  padding:9px 14px;border-right:1px solid var(--rule);min-width:0}
+.brand b{font:700 15px/1.1 var(--f-cond);letter-spacing:.02em;white-space:nowrap}
+.brand span{font:500 9.5px/1.2 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.fields{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:thin}
+.field{display:flex;flex-direction:column;justify-content:center;gap:2px;
+  padding:9px 13px;border-right:1px solid var(--rule-soft);white-space:nowrap}
+.field b{font:600 9px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.field span{font:500 12.5px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.cart-actions{display:flex;align-items:center;gap:7px;padding:0 12px;border-left:1px solid var(--rule)}
+
+/* ---------- boutons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 12px;border:1px solid var(--rule);border-radius:3px;background:var(--surface-2);
+  font:500 13px/1 var(--f-ui);cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s}
+.btn:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+.btn.sm{padding:5px 9px;font-size:12px}
+.btn.icon{padding:6px 8px;font-family:var(--f-mono);font-size:13px;min-width:30px}
+.btn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger:hover:not(:disabled){border-color:var(--crit);background:transparent;color:var(--crit)}
+
+/* ---------- corps ---------- */
+.body{flex:1;display:flex;min-height:0;min-width:0}
+aside{flex:0 0 352px;width:352px;display:flex;flex-direction:column;min-height:0;
+  background:var(--surface);border-right:1px solid var(--rule)}
+.tabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--rule)}
+.tab{flex:1;padding:10px 4px;border:0;border-bottom:2px solid transparent;background:transparent;
+  font:600 11px/1 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);background:var(--surface-2)}
+.panel{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px;display:flex;flex-direction:column;gap:14px}
+
+.block{display:flex;flex-direction:column;gap:9px}
+.block>h3{margin:0;font:600 9.5px/1 var(--f-mono);letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:8px}
+.block>h3::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
+.hint{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.hint code{font:500 11.5px var(--f-mono);background:var(--surface-2);border:1px solid var(--rule-soft);
+  border-radius:2px;padding:1px 4px}
+
+.row{display:flex;gap:7px;align-items:center}
+.row.wrap{flex-wrap:wrap}
+label.ctl{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+label.ctl>span{font:600 9.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  display:flex;justify-content:space-between;gap:8px}
+label.ctl>span em{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=text],input[type=number],select{width:100%;padding:7px 9px;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface-2);font:400 13px var(--f-ui);min-width:0}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.check{display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;
+  padding:4px 7px;border:1px solid var(--rule-soft);border-radius:3px;background:var(--surface-2)}
+.check input{accent-color:var(--accent);margin:0}
+
+/* ---------- nomenclature ---------- */
+.nomen{display:flex;flex-direction:column;gap:0;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.nomen-head,.leg{display:grid;grid-template-columns:30px 40px 1fr 54px 26px;align-items:center;gap:8px;
+  padding:7px 9px}
+.nomen-head{background:var(--surface-2);border-bottom:1px solid var(--rule)}
+.nomen-head span{font:600 8.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.nomen-head span:nth-child(4),.leg .cnt{text-align:right}
+.leg{border-bottom:1px solid var(--rule-soft);cursor:pointer;background:transparent;border-left:3px solid transparent}
+.leg:last-child{border-bottom:0}
+.leg:hover{background:var(--surface-2)}
+.leg.sel{background:var(--accent-soft);border-left-color:var(--accent)}
+.leg .rep{font:600 11px var(--f-mono);color:var(--muted);text-align:center}
+.leg .sym{width:38px;height:30px;border:1px solid var(--rule-soft);border-radius:2px;background:#fff;
+  display:block;object-fit:contain;image-rendering:crisp-edges}
+.leg .sym.txt{display:flex;align-items:center;justify-content:center;font:600 10px var(--f-mono);
+  color:#222;overflow:hidden;padding:1px;text-align:center;line-height:1.05;word-break:break-all}
+.leg .nm{min-width:0;display:flex;flex-direction:column;gap:1px}
+.leg .nm b{font:500 13px/1.25 var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg .nm i{font:400 10.5px/1 var(--f-mono);font-style:normal;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg .cnt{font:600 17px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.leg .eye{border:0;background:transparent;cursor:pointer;padding:3px;color:var(--muted);line-height:1}
+.leg .eye[aria-pressed="false"]{opacity:.3}
+.leg .bar{grid-column:1/-1;height:3px;border-radius:2px;background:var(--rule-soft);overflow:hidden;margin-top:2px}
+.leg .bar i{display:block;height:100%;border-radius:2px}
+.total{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:baseline;
+  padding:9px 11px;background:var(--surface-2);border-top:1px solid var(--rule)}
+.total b{font:600 9.5px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.total span{font:600 18px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.empty-list{padding:18px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.6}
+
+/* ---------- courbe de stabilité ---------- */
+.curve{display:flex;flex-direction:column;gap:6px;border:1px solid var(--rule);border-radius:3px;
+  padding:9px 10px 7px;background:var(--surface-2)}
+.curve-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.curve-head b{font:600 9.5px/1 var(--f-mono);letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.curve-head span{font:600 12px/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.curve-plot{position:relative;width:100%;height:84px;cursor:crosshair;touch-action:none}
+.curve-plot svg{display:block;width:100%;height:84px;overflow:visible}
+.curve-cap{margin:0;font-size:11.5px;line-height:1.45;color:var(--muted)}
+.curve-tip{position:absolute;pointer-events:none;transform:translate(-50%,-100%);
+  padding:3px 6px;border-radius:3px;background:var(--ink);color:var(--surface);
+  font:500 10.5px/1.3 var(--f-mono);white-space:nowrap;opacity:0;transition:opacity .1s}
+.curve-tip.on{opacity:1}
+
+/* ---------- jetons de texte ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:5px;max-height:216px;overflow-y:auto;padding:1px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface-2);cursor:pointer;font:500 12px var(--f-mono);max-width:100%}
+.chip:hover{border-color:var(--accent);background:var(--accent-soft)}
+.chip s{text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.chip b{font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* ---------- scène ---------- */
+.stage{flex:1;position:relative;min-width:0;min-height:0;background:var(--stage);overflow:hidden}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#view.pick{cursor:crosshair}
+#view.panning{cursor:grabbing}
+.stage-tools{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+  max-width:calc(100% - 20px);pointer-events:none}
+.stage-tools>*{pointer-events:auto}
+.toolgroup{display:flex;gap:1px;background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  box-shadow:var(--shadow);overflow:hidden}
+.toolgroup .btn{border:0;border-radius:0;background:var(--surface)}
+.toolgroup .btn+.btn{border-left:1px solid var(--rule-soft)}
+.toolgroup .btn.on{background:var(--accent);color:var(--accent-ink)}
+.banner{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border-radius:3px;
+  background:var(--surface);border:1px solid var(--rule);box-shadow:var(--shadow);max-width:330px;
+  font-size:12.5px;line-height:1.45}
+.banner.tip{border-left:3px solid var(--accent)}
+.banner.warn{border-left:3px solid var(--warn)}
+.banner b{display:block;font:600 9.5px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.banner button{margin-left:auto;border:0;background:transparent;cursor:pointer;color:var(--muted);
+  font:600 15px/1 var(--f-mono);padding:0 2px}
+
+.drop{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:color-mix(in srgb, var(--stage) 82%, transparent);backdrop-filter:blur(2px);z-index:5}
+.drop-in{max-width:430px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;
+  padding:28px 26px;border:2px dashed var(--rule);border-radius:5px;background:var(--surface);box-shadow:var(--shadow)}
+.drop-in h2{margin:0;font:700 19px/1.2 var(--f-cond);text-wrap:balance}
+.drop-in p{margin:0;font-size:13px;line-height:1.55;color:var(--muted)}
+
+/* ---------- bandeau d'état ---------- */
+.status{flex:0 0 auto;display:flex;align-items:center;gap:0;background:var(--surface);
+  border-top:1px solid var(--rule);font:500 11px var(--f-mono);overflow-x:auto;
+  padding-bottom:env(safe-area-inset-bottom,0px);scrollbar-width:thin}
+.status>div{padding:6px 11px;border-right:1px solid var(--rule-soft);white-space:nowrap;
+  display:flex;gap:7px;align-items:center}
+.status .k{color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-size:9px;font-weight:600}
+.status .v{font-variant-numeric:tabular-nums}
+.status .grow{flex:1;border-right:0;min-width:80px}
+.prog{flex:1;height:4px;border-radius:2px;background:var(--rule-soft);overflow:hidden;min-width:60px}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s linear}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:0 0 auto}
+.dot.busy{background:var(--warn);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.dot.busy{animation:none}*{transition:none!important}}
+
+/* ---------- modale ---------- */
+.modal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:rgba(10,14,18,.58)}
+.modal-in{width:100%;max-width:560px;max-height:84vh;display:flex;flex-direction:column;gap:12px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:5px;box-shadow:var(--shadow);padding:18px}
+.modal-in h2{margin:0;font:700 17px/1.2 var(--f-cond)}
+.modal-in p{margin:0;font-size:13px;line-height:1.55;color:var(--muted)}
+.modal-in textarea{flex:1;min-height:170px;width:100%;padding:9px;border:1px solid var(--rule);border-radius:3px;
+  background:var(--surface-2);font:400 11.5px/1.45 var(--f-mono);resize:vertical}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ---------- aide / tableau ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:3px}
+table.rep{width:100%;border-collapse:collapse;font:400 12px var(--f-mono)}
+table.rep th,table.rep td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--rule-soft);white-space:nowrap}
+table.rep th{font:600 8.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  background:var(--surface-2)}
+table.rep td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+
+@media (max-width:860px){
+  .body{flex-direction:column}
+  aside{flex:0 0 auto;width:auto;max-height:46%;border-right:0;border-bottom:1px solid var(--rule)}
+  .stage{min-height:240px}
+  .brand span{display:none}
+  .stage-tools{top:8px;right:8px}
+  .banner{max-width:min(330px,calc(100vw - 32px))}
+}
+</style>
+
+<div id="app">
+
+  <header class="cartouche">
+    <div class="brand">
+      <b>Compteur de légendes</b>
+      <span>CFO · CFA — métré sur plan</span>
+    </div>
+    <div class="fields">
+      <div class="field"><b>Document</b><span id="f-doc">—</span></div>
+      <div class="field"><b>Folio</b><span id="f-page">—</span></div>
+      <div class="field"><b>Format</b><span id="f-fmt">—</span></div>
+      <div class="field"><b>Résolution</b><span id="f-res">—</span></div>
+      <div class="field"><b>Repères</b><span id="f-legs">0</span></div>
+      <div class="field"><b>Total compté</b><span id="f-total">0</span></div>
+    </div>
+    <div class="cart-actions">
+      <button class="btn primary" id="btn-open">Ouvrir un PDF</button>
+      <button class="btn icon" id="btn-theme" title="Clair / sombre" aria-label="Basculer le thème">◐</button>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-sym" aria-selected="true" aria-controls="p-sym">Symboles</button>
+        <button class="tab" role="tab" id="tab-txt" aria-selected="false" aria-controls="p-txt">Textes</button>
+        <button class="tab" role="tab" id="tab-exp" aria-selected="false" aria-controls="p-exp">Export</button>
+        <button class="tab" role="tab" id="tab-aide" aria-selected="false" aria-controls="p-aide">Aide</button>
+      </div>
+
+      <!-- ============ SYMBOLES ============ -->
+      <div class="panel" id="p-sym" role="tabpanel" aria-labelledby="tab-sym">
+        <div class="block">
+          <h3>Nomenclature</h3>
+          <div class="nomen" id="nomen">
+            <div class="nomen-head"><span>Rep</span><span>Sym</span><span>Désignation</span><span>Qté</span><span></span></div>
+            <div class="empty-list" id="nomen-empty">Aucun repère.<br>Encadrez un symbole sur le plan pour créer une ligne.</div>
+          </div>
+          <div class="total"><b>Total du folio</b><span id="tot-page">0</span></div>
+        </div>
+
+        <div class="block">
+          <h3>Nouveau repère</h3>
+          <p class="hint" id="pick-hint">Cliquez <b>Encadrer un symbole</b>, puis tracez un rectangle serré autour d'un symbole — dans le tableau de légende du plan, c'est l'idéal.</p>
+          <div class="row">
+            <button class="btn primary" id="btn-pick" style="flex:1">▭ Encadrer un symbole</button>
+          </div>
+        </div>
+
+        <div class="block" id="tune" hidden>
+          <h3>Réglages du repère sélectionné</h3>
+          <label class="ctl"><span>Seuil de similarité <em id="v-thr">0.80</em></span>
+            <input type="range" id="r-thr" min="0.45" max="0.99" step="0.01" value="0.80"></label>
+          <div class="curve" id="curve" hidden>
+            <div class="curve-head"><b>Stabilité du comptage</b><span id="curve-val">—</span></div>
+            <div class="curve-plot" id="curve-plot"><div class="curve-tip" id="curve-tip"></div></div>
+            <p class="curve-cap">Occurrences retenues selon le seuil. Un palier large signale un comptage robuste : placez-vous au milieu. Cliquez dans le graphique pour y régler le seuil.</p>
+          </div>
+          <label class="ctl"><span>Pénalité surplus d'encre <em id="v-pen">0.35</em></span>
+            <input type="range" id="r-pen" min="0" max="0.8" step="0.05" value="0.35"></label>
+          <label class="ctl"><span>Écart mini entre 2 occurrences <em id="v-nms">60 %</em></span>
+            <input type="range" id="r-nms" min="0.2" max="1.2" step="0.05" value="0.6"></label>
+          <div class="row wrap">
+            <label class="check"><input type="checkbox" id="c-rot"> Rotations 90°/180°/270°</label>
+            <label class="check"><input type="checkbox" id="c-mir"> Symétries</label>
+          </div>
+          <label class="ctl"><span>Tolérance d'échelle</span>
+            <select id="s-scale">
+              <option value="1">Aucune (recommandé)</option>
+              <option value="2">± 10 %</option>
+              <option value="3">± 20 %</option>
+            </select></label>
+          <div class="row">
+            <button class="btn sm" id="btn-recount" style="flex:1">↻ Relancer la détection</button>
+            <button class="btn sm danger" id="btn-del">Supprimer</button>
+          </div>
+          <p class="hint" id="tune-stat"></p>
+        </div>
+
+        <div class="block">
+          <h3>Correction manuelle</h3>
+          <div class="row wrap">
+            <button class="btn sm" id="btn-add" style="flex:1">＋ Ajouter un point</button>
+            <button class="btn sm" id="btn-rm" style="flex:1">－ Retirer un point</button>
+          </div>
+          <p class="hint">Un plan n'est jamais parfait : ajoutez les symboles manqués, retirez les faux positifs. Les corrections survivent aux changements de seuil.</p>
+        </div>
+
+        <div class="block">
+          <h3>Image analysée</h3>
+          <label class="ctl"><span>Finesse de rendu</span>
+            <select id="s-dpi">
+              <option value="2200">Rapide — 2200 px</option>
+              <option value="3600" selected>Standard — 3600 px</option>
+              <option value="5200">Précis — 5200 px</option>
+              <option value="7000">Maximum — 7000 px</option>
+            </select></label>
+          <label class="ctl"><span>Seuil d'encrage <em id="v-ink">auto</em></span>
+            <input type="range" id="r-ink" min="0" max="255" step="1" value="0"></label>
+          <p class="hint">0 = seuil automatique (Otsu). Montez-le si des traits fins disparaissent, baissez-le si le fond est sale.</p>
+        </div>
+      </div>
+
+      <!-- ============ TEXTES ============ -->
+      <div class="panel" id="p-txt" role="tabpanel" aria-labelledby="tab-txt" hidden>
+        <div class="block">
+          <h3>Compter un libellé</h3>
+          <p class="hint">Sur un plan vectoriel, les étiquettes (<code>PC 16A</code>, <code>RJ45</code>, <code>BAES</code>, <code>DAS</code>…) sont du vrai texte : le comptage est alors exact, pas approché.</p>
+          <div class="row">
+            <input type="text" id="t-needle" placeholder="ex. RJ45" autocomplete="off">
+            <button class="btn primary" id="btn-tcount">Compter</button>
+          </div>
+          <div class="row wrap">
+            <label class="check"><input type="checkbox" id="t-word" checked> Mot entier</label>
+            <label class="check"><input type="checkbox" id="t-regex"> Expression régulière</label>
+          </div>
+          <p class="hint" id="t-stat"></p>
+        </div>
+        <div class="block">
+          <h3>Inventaire du folio</h3>
+          <p class="hint">Tous les libellés présents, du plus fréquent au plus rare. Cliquez pour créer le repère.</p>
+          <div class="chips" id="t-chips"><div class="empty-list">Aucun texte extrait.</div></div>
+        </div>
+        <div class="block">
+          <h3>Recherche groupée</h3>
+          <p class="hint">Un libellé par ligne : chaque ligne devient un repère.</p>
+          <textarea id="t-batch" rows="5" placeholder="PC 16A&#10;RJ45&#10;BAES&#10;DAS" style="width:100%;padding:8px;border:1px solid var(--rule);border-radius:3px;background:var(--surface-2);font:400 12px var(--f-mono);resize:vertical"></textarea>
+          <button class="btn" id="btn-tbatch">Créer les repères</button>
+        </div>
+      </div>
+
+      <!-- ============ EXPORT ============ -->
+      <div class="panel" id="p-exp" role="tabpanel" aria-labelledby="tab-exp" hidden>
+        <div class="block">
+          <h3>Récapitulatif</h3>
+          <div class="tbl-wrap"><table class="rep" id="recap"><thead><tr><th>Rep</th><th>Désignation</th><th>Mode</th><th>Qté folio</th><th>Qté doc</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="block">
+          <h3>Comptage multi-folios</h3>
+          <p class="hint">Applique tous les repères à chaque page du document, l'une après l'autre. La mémoire est libérée entre chaque page.</p>
+          <button class="btn" id="btn-allpages">▶ Compter sur tout le document</button>
+        </div>
+        <div class="block">
+          <h3>Tableaux</h3>
+          <div class="row wrap">
+            <button class="btn sm" id="x-csv-sum" style="flex:1">CSV — synthèse</button>
+            <button class="btn sm" id="x-csv-det" style="flex:1">CSV — détail</button>
+          </div>
+          <p class="hint">Séparateur <code>;</code> et BOM UTF-8 : s'ouvre directement dans Excel français.</p>
+        </div>
+        <div class="block">
+          <h3>AutoCAD</h3>
+          <div class="row wrap">
+            <button class="btn sm" id="x-dxf-pts" style="flex:1">DXF — repères comptés</button>
+            <button class="btn sm" id="x-dxf-geo" style="flex:1">DXF — plan vectorisé</button>
+          </div>
+          <p class="hint">DXF R12 en millimètres, un calque par repère. <b>Repères comptés</b> : les points relevés, à superposer à votre fond de plan. <b>Plan vectorisé</b> : la géométrie du PDF convertie en lignes, polylignes et textes — l'équivalent de l'import PDF d'AutoCAD. Ouvrez puis enregistrez en DWG.</p>
+          <label class="check" style="align-self:flex-start"><input type="checkbox" id="x-dxf-txt" checked> Inclure les textes</label>
+        </div>
+        <div class="block">
+          <h3>Image et projet</h3>
+          <div class="row wrap">
+            <button class="btn sm" id="x-png" style="flex:1">PNG annoté</button>
+            <button class="btn sm" id="x-save" style="flex:1">Enregistrer le projet</button>
+          </div>
+          <button class="btn sm" id="x-load">Charger un projet (.cfo.json)</button>
+          <p class="hint">Le projet contient vos repères, seuils et corrections — rechargez-le sur un autre folio ou un autre lot pour compter à l'identique.</p>
+        </div>
+      </div>
+
+      <!-- ============ AIDE ============ -->
+      <div class="panel" id="p-aide" role="tabpanel" aria-labelledby="tab-aide" hidden>
+        <div class="block">
+          <h3>Méthode</h3>
+          <p class="hint">
+            <b>1.</b> Ouvrez le PDF du plan (CFO ou CFA).<br>
+            <b>2.</b> Onglet <b>Textes</b> d'abord : si les étiquettes sont du vrai texte, le comptage est exact. L'inventaire vous donne tout de suite la liste des libellés.<br>
+            <b>3.</b> Pour les symboles graphiques, onglet <b>Symboles</b> : encadrez le symbole dans le tableau de légende, puis ajustez le seuil.<br>
+            <b>4.</b> Vérifiez à l'œil, corrigez à la main, exportez.
+          </p>
+        </div>
+        <div class="block">
+          <h3>Régler le seuil</h3>
+          <p class="hint">Le curseur filtre instantanément : la détection n'est calculée qu'une fois. Descendez jusqu'à voir apparaître les faux positifs, puis remontez d'un cran. Les symboles traversés par un câble ont beaucoup d'encre en plus : baissez la <b>pénalité surplus d'encre</b>.</p>
+        </div>
+        <div class="block">
+          <h3>Commandes</h3>
+          <div class="tbl-wrap"><table class="rep"><tbody>
+            <tr><td>Molette</td><td>Zoom au curseur</td></tr>
+            <tr><td>Glisser</td><td>Déplacer le plan</td></tr>
+            <tr><td>Maj + glisser</td><td>Encadrer un symbole</td></tr>
+            <tr><td>Double-clic</td><td>Zoom ajusté / 100 %</td></tr>
+            <tr><td>F</td><td>Ajuster à l'écran</td></tr>
+            <tr><td>S</td><td>Encadrer un symbole</td></tr>
+            <tr><td>A / R</td><td>Ajouter / retirer un point</td></tr>
+            <tr><td>← →</td><td>Folio précédent / suivant</td></tr>
+            <tr><td>Échap</td><td>Annuler l'outil en cours</td></tr>
+          </tbody></table></div>
+        </div>
+        <div class="block">
+          <h3>Confidentialité</h3>
+          <p class="hint">Tout le traitement a lieu dans votre navigateur. Aucun plan n'est envoyé sur un serveur — rien ne sort de votre poste.</p>
+        </div>
+        <div class="block">
+          <h3>Limites</h3>
+          <p class="hint">Le comptage par image est une aide au métré, pas un relevé contractuel : contrôlez toujours le résultat à l'écran. Un symbole trop petit (moins de 8 px à la résolution choisie) ou noyé dans un aplat se détecte mal — montez la finesse de rendu.</p>
+        </div>
+      </div>
+    </aside>
+
+    <section class="stage" id="stage">
+      <canvas id="view"></canvas>
+      <div class="stage-tools">
+        <div class="toolgroup">
+          <button class="btn icon" id="z-out" title="Zoom arrière">−</button>
+          <button class="btn icon" id="z-fit" title="Ajuster (F)">⤢</button>
+          <button class="btn icon" id="z-in" title="Zoom avant">+</button>
+        </div>
+        <div class="toolgroup">
+          <button class="btn icon" id="p-prev" title="Folio précédent">‹</button>
+          <button class="btn icon" id="p-next" title="Folio suivant">›</button>
+        </div>
+        <div class="toolgroup">
+          <button class="btn sm on" id="t-marks" title="Afficher les repères">Repères</button>
+          <button class="btn sm" id="t-ink" title="Voir l'image binarisée analysée">Encrage</button>
+        </div>
+        <div class="banner tip" id="tip" hidden>
+          <div style="min-width:0"><b id="tip-k">Astuce</b><span id="tip-t"></span></div>
+          <button id="tip-x" aria-label="Fermer">×</button>
+        </div>
+      </div>
+      <div class="drop" id="drop" hidden>
+        <div class="drop-in">
+          <h2>Déposez le plan PDF</h2>
+          <p>Ou cliquez pour choisir un fichier. Le document reste sur votre poste.</p>
+          <button class="btn primary" id="drop-btn">Choisir un PDF</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="status">
+    <div><span class="dot" id="st-dot"></span><span class="v" id="st-msg">Prêt</span></div>
+    <div><span class="k">Zoom</span><span class="v" id="st-zoom">—</span></div>
+    <div><span class="k">Curseur</span><span class="v" id="st-pos">—</span></div>
+    <div><span class="k">Outil</span><span class="v" id="st-tool">Navigation</span></div>
+    <div class="grow"><div class="prog"><i id="st-prog"></i></div></div>
+  </footer>
+</div>
+
+<input type="file" id="file-pdf" accept="application/pdf,.pdf" hidden>
+<input type="file" id="file-prj" accept=".json,.cfo.json,application/json" hidden>
+
+<!--PDFJS_LOADER-->
+
+<script>
+"use strict";
+/* ============================================================================
+   Compteur de légendes CFO / CFA
+   Comptage d'occurrences de symboles et de libellés sur un plan PDF.
+   Tout tourne côté navigateur : le plan ne quitte jamais le poste.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. Worker d'appariement de formes
+   Corrélation binaire grossier→fin :
+     - masque d'encre binarisé + masque dilaté (tolérance au décalage d'1 px)
+     - niveau grossier (facteur F) + image intégrale pour rejeter vite
+     - affinage au pixel autour des candidats retenus
+   Renvoie tous les candidats avec rappel et précision : le seuil se règle
+   ensuite côté interface, sans recalcul.
+--------------------------------------------------------------------------- */
+function matcherWorkerBody(){
+  var P = null;          // page courante
+  var coarseCache = {};  // F -> {cw,ch,cmask,cdil,cint}
+  var cancelled = false;
+
+  function count(m){ var n=0; for(var i=0;i<m.length;i++) if(m[i]) n++; return n; }
+
+  function dilate(m,w,h){
+    var tmp=new Uint8Array(w*h), out=new Uint8Array(w*h), x,y,r,v;
+    for(y=0;y<h;y++){ r=y*w;
+      for(x=0;x<w;x++){
+        v=m[r+x];
+        if(!v && x>0   && m[r+x-1]) v=1;
+        if(!v && x<w-1 && m[r+x+1]) v=1;
+        tmp[r+x]=v;
+      } }
+    for(y=0;y<h;y++){ r=y*w;
+      for(x=0;x<w;x++){
+        v=tmp[r+x];
+        if(!v && y>0   && tmp[r-w+x]) v=1;
+        if(!v && y<h-1 && tmp[r+w+x]) v=1;
+        out[r+x]=v;
+      } }
+    return out;
+  }
+
+  function coarsen(m,w,h,F){
+    var cw=Math.ceil(w/F), ch=Math.ceil(h/F), out=new Uint8Array(cw*ch);
+    for(var y=0;y<h;y++){
+      var row=y*w, crow=((y/F)|0)*cw;
+      for(var x=0;x<w;x++) if(m[row+x]) out[crow+((x/F)|0)]=1;
+    }
+    return {m:out,w:cw,h:ch};
+  }
+
+  function integral(m,w,h){
+    var W=w+1, I=new Int32Array(W*(h+1));
+    for(var y=0;y<h;y++){
+      var s=0, row=y*w, o=(y+1)*W, p=y*W;
+      for(var x=0;x<w;x++){ s+=m[row+x]; I[o+x+1]=I[p+x+1]+s; }
+    }
+    return I;
+  }
+  function boxSum(I,w,x,y,bw,bh){
+    var W=w+1, a=(y+bh)*W, b=y*W;
+    return I[a+x+bw]-I[b+x+bw]-I[a+x]+I[b+x];
+  }
+
+  function coarseLevel(F){
+    if(coarseCache[F]) return coarseCache[F];
+    var c=coarsen(P.mask,P.w,P.h,F);
+    var lvl={cw:c.w, ch:c.h, cmask:c.m, cdil:dilate(c.m,c.w,c.h), cint:integral(c.m,c.w,c.h)};
+    coarseCache[F]=lvl;
+    return lvl;
+  }
+
+  function rotateMask(m,w,h,deg){
+    var out,x,y;
+    if(deg===0) return {m:m,w:w,h:h};
+    if(deg===180){ out=new Uint8Array(w*h); for(var i=0,n=w*h;i<n;i++) out[i]=m[n-1-i]; return {m:out,w:w,h:h}; }
+    out=new Uint8Array(w*h);
+    if(deg===90){ for(y=0;y<h;y++) for(x=0;x<w;x++) if(m[y*w+x]) out[x*h+(h-1-y)]=1; }
+    else        { for(y=0;y<h;y++) for(x=0;x<w;x++) if(m[y*w+x]) out[(w-1-x)*h+y]=1; }
+    return {m:out,w:h,h:w};
+  }
+  function mirrorMask(m,w,h){
+    var out=new Uint8Array(w*h);
+    for(var y=0;y<h;y++) for(var x=0;x<w;x++) if(m[y*w+x]) out[y*w+(w-1-x)]=1;
+    return out;
+  }
+  function scaleMask(m,w,h,f){
+    var nw=Math.max(2,Math.round(w*f)), nh=Math.max(2,Math.round(h*f));
+    var out=new Uint8Array(nw*nh);
+    for(var y=0;y<nh;y++){
+      var sy=Math.min(h-1,(y/f)|0)*w, o=y*nw;
+      for(var x=0;x<nw;x++) if(m[sy+Math.min(w-1,(x/f)|0)]) out[o+x]=1;
+    }
+    return {m:out,w:nw,h:nh};
+  }
+
+  /* suppression des non-maxima sur une grille */
+  function nms(list,dx,dy){
+    list.sort(function(a,b){ return b.rec-a.rec; });
+    var keep=[], gx=Math.max(1,dx), gy=Math.max(1,dy), grid={};
+    for(var i=0;i<list.length;i++){
+      var c=list[i], gi=(c.x/gx)|0, gj=(c.y/gy)|0, hit=false;
+      for(var a=-1;a<=1&&!hit;a++) for(var b=-1;b<=1&&!hit;b++){
+        var cell=grid[(gi+a)+":"+(gj+b)];
+        if(!cell) continue;
+        for(var k=0;k<cell.length;k++)
+          if(Math.abs(cell[k].x-c.x)<dx && Math.abs(cell[k].y-c.y)<dy){ hit=true; break; }
+      }
+      if(hit) continue;
+      var key=gi+":"+gj;
+      (grid[key]||(grid[key]=[])).push(c);
+      keep.push(c);
+    }
+    return keep;
+  }
+
+  function scanVariant(tm,tw,th,rot,mir,scl,floor,onProg){
+    var nT=count(tm);
+    if(nT<5 || tw<3 || th<3 || tw>P.w || th>P.h) return [];
+    var tdil=dilate(tm,tw,th), nTd=count(tdil);
+
+    var F = Math.min(6, Math.max(1, Math.floor(Math.min(tw,th)/5)));
+    var lvl=coarseLevel(F);
+    var cw=lvl.cw, ch=lvl.ch;
+    var ct=coarsen(tm,tw,th,F), ctw=ct.w, cth=ct.h, nTc=count(ct.m);
+    if(nTc<1 || ctw>cw || cth>ch) return [];
+
+    var coffs=[], i, x, y;
+    for(y=0;y<cth;y++) for(x=0;x<ctw;x++) if(ct.m[y*ctw+x]) coffs.push(y*cw+x);
+    var nC=coffs.length, need=Math.max(1,Math.ceil(nTc*0.68));
+    var lo=nTc*0.45, hi=nTc*3.6;
+
+    var maxCx=cw-ctw, maxCy=ch-cth, cands=[];
+    for(y=0;y<=maxCy;y++){
+      if(cancelled) return [];
+      if(onProg && (y&31)===0) onProg(y/(maxCy+1));
+      var rowBase=y*cw;
+      for(x=0;x<=maxCx;x++){
+        var s=boxSum(lvl.cint,cw,x,y,ctw,cth);
+        if(s<lo || s>hi) continue;
+        var base=rowBase+x, inter=0;
+        for(i=0;i<nC;i++){
+          if(lvl.cdil[base+coffs[i]]) inter++;
+          else if(inter + (nC-i-1) < need) break;
+        }
+        if(inter>=need) cands.push({x:x,y:y,rec:inter/nTc});
+      }
+    }
+    if(!cands.length) return [];
+    cands=nms(cands, Math.max(1,ctw*0.5), Math.max(1,cth*0.5));
+    if(cands.length>40000) cands=cands.slice(0,40000);
+
+    /* affinage au pixel */
+    var toffs=new Int32Array(nT), n0=0;
+    for(y=0;y<th;y++) for(x=0;x<tw;x++) if(tm[y*tw+x]) toffs[n0++]=y*P.w+x;
+    var tdoffs=new Int32Array(nTd), n1=0;
+    for(y=0;y<th;y++) for(x=0;x<tw;x++) if(tdil[y*tw+x]) tdoffs[n1++]=y*P.w+x;
+
+    /* Fenêtre d'affinage : la suppression des non-maxima grossière peut retenir
+       une cellule voisine de la bonne, et le gabarit grossier est calé sur la
+       phase 0. Il faut donc balayer ±2F autour de la cellule, sinon on rate la
+       position exacte une fois sur deux. Deux passes — pas de F/2 puis pas de
+       1 autour du meilleur — pour que ce balayage reste bon marché. */
+    var maxX=P.w-tw, maxY=P.h-th, hits=[];
+    var R=2*F+2, stp=F>=4?Math.max(2,F>>1):1;
+    for(var ci=0;ci<cands.length;ci++){
+      if(cancelled) return [];
+      if(onProg && (ci&127)===0) onProg(0.6+0.4*ci/cands.length);
+      var c=cands[ci], cxF=c.x*F, cyF=c.y*F;
+      var x0=Math.max(0,Math.min(maxX,cxF-R)), x1=Math.max(0,Math.min(maxX,cxF+R));
+      var y0=Math.max(0,Math.min(maxY,cyF-R)), y1=Math.max(0,Math.min(maxY,cyF+R));
+      var bestR=-1, bx=x0, by=y0, b, it, rb;
+      for(y=y0;y<=y1;y+=stp){
+        rb=y*P.w;
+        for(x=x0;x<=x1;x+=stp){
+          b=rb+x; it=0;
+          for(i=0;i<nT;i++){
+            if(P.dil[b+toffs[i]]) it++;
+            else if(it+(nT-i-1)<=bestR) break;
+          }
+          if(it>bestR){ bestR=it; bx=x; by=y; }
+        }
+      }
+      if(stp>1){
+        var ax0=Math.max(x0,bx-stp), ax1=Math.min(x1,bx+stp);
+        var ay0=Math.max(y0,by-stp), ay1=Math.min(y1,by+stp);
+        for(y=ay0;y<=ay1;y++){
+          rb=y*P.w;
+          for(x=ax0;x<=ax1;x++){
+            b=rb+x; it=0;
+            for(i=0;i<nT;i++){
+              if(P.dil[b+toffs[i]]) it++;
+              else if(it+(nT-i-1)<=bestR) break;
+            }
+            if(it>bestR){ bestR=it; bx=x; by=y; }
+          }
+        }
+      }
+      var rec=bestR/nT;
+      if(rec<floor) continue;
+      /* précision : encre du gabarit dilaté retrouvée / encre totale de la fenêtre */
+      var bb=by*P.w+bx, ip=0;
+      for(i=0;i<nTd;i++) if(P.mask[bb+tdoffs[i]]) ip++;
+      var inkW=0;
+      for(y=0;y<th;y++){ var r2=bb+y*P.w; for(x=0;x<tw;x++) if(P.mask[r2+x]) inkW++; }
+      hits.push({x:bx,y:by,w:tw,h:th,rec:rec,pre:ip/Math.max(1,inkW),rot:rot,mir:mir,scl:scl});
+    }
+    return nms(hits, Math.max(2,tw*0.35), Math.max(2,th*0.35));
+  }
+
+  self.onmessage = function(e){
+    var m=e.data;
+    if(m.type==="page"){
+      cancelled=false; coarseCache={};
+      var mask=new Uint8Array(m.mask);
+      P={w:m.w,h:m.h,mask:mask,dil:dilate(mask,m.w,m.h)};
+      self.postMessage({type:"pageReady", ink:count(mask)});
+      return;
+    }
+    if(m.type==="cancel"){ cancelled=true; return; }
+    if(m.type!=="match") return;
+    if(!P){ self.postMessage({type:"result",id:m.id,hits:[],err:"Aucune page chargée"}); return; }
+    cancelled=false;
+    var t0=Date.now();
+    try{
+      var base={m:new Uint8Array(m.tpl.mask), w:m.tpl.w, h:m.tpl.h};
+      var variants=[], scales=m.opts.scales||[1];
+      for(var si=0;si<scales.length;si++){
+        var sc=scales[si];
+        var sv = sc===1 ? base : scaleMask(base.m,base.w,base.h,sc);
+        for(var ri=0;ri<m.opts.rotations.length;ri++){
+          var deg=m.opts.rotations[ri], rv=rotateMask(sv.m,sv.w,sv.h,deg);
+          variants.push({m:rv.m,w:rv.w,h:rv.h,rot:deg,mir:0,scl:sc});
+          if(m.opts.mirror) variants.push({m:mirrorMask(rv.m,rv.w,rv.h),w:rv.w,h:rv.h,rot:deg,mir:1,scl:sc});
+        }
+      }
+      var all=[];
+      for(var vi=0;vi<variants.length;vi++){
+        if(cancelled) break;
+        var v=variants[vi], off=vi/variants.length, span=1/variants.length;
+        var part=scanVariant(v.m,v.w,v.h,v.rot,v.mir,v.scl,m.opts.floor,function(p){
+          self.postMessage({type:"progress",id:m.id,pct:off+span*p});
+        });
+        for(var k=0;k<part.length;k++) all.push(part[k]);
+      }
+      if(cancelled){ self.postMessage({type:"result",id:m.id,hits:[],cancelled:true}); return; }
+      self.postMessage({type:"result",id:m.id,hits:all,ms:Date.now()-t0,
+        variants:variants.length, tw:base.w, th:base.h});
+    }catch(err){
+      self.postMessage({type:"result",id:m.id,hits:[],err:String(err&&err.message||err)});
+    }
+  };
+}
+
+/* ---------------------------------------------------------------------------
+   2. État et utilitaires
+--------------------------------------------------------------------------- */
+var PT2MM = 25.4/72;
+var PALETTE = ["#d6263f","#0b76b8","#1f8f4e","#c4700a","#7a3fc9",
+               "#0f98a6","#b3177f","#5a7a12","#2b4ec9","#a23a0e"];
+var FORMATS = [["A0",1189,841],["A1",841,594],["A2",594,420],["A3",420,297],
+               ["A4",297,210],["A5",210,148]];
+
+var pdfDoc=null, pdfName="", pageNum=1, pageCount=0;
+var src = { canvas:null, ctx:null, w:0, h:0, mask:null, ink:0, thr:0,
+            viewport:null, pageObj:null, demo:false, text:[], mmPerPx:0 };
+var view = { k:1, tx:0, ty:0 };
+var legends=[], selId=null, nextRep=1;
+var tool="nav";               // nav | pick | add | rm
+var showMarks=true, showInk=false;
+var worker=null, workerBusy=false, matchSeq=1, pending={};
+var drag=null, pickRect=null, needRedraw=false;
+
+function $(id){ return document.getElementById(id); }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function nf(n){ return (n|0).toLocaleString("fr-FR"); }
+
+function setStatus(msg,busy){
+  $("st-msg").textContent=msg;
+  $("st-dot").className="dot"+(busy?" busy":"");
+}
+function setProg(p){ $("st-prog").style.width=(p==null?0:clamp(p,0,1)*100)+"%"; }
+function setTool(t){
+  tool=t;
+  $("btn-pick").classList.toggle("on",t==="pick");
+  $("btn-add").classList.toggle("on",t==="add");
+  $("btn-rm").classList.toggle("on",t==="rm");
+  $("view").classList.toggle("pick",t!=="nav");
+  $("st-tool").textContent={nav:"Navigation",pick:"Encadrement",add:"Ajout de point",rm:"Retrait de point"}[t];
+}
+var tipT=null;
+function tip(k,t){
+  $("tip-k").textContent=k; $("tip-t").textContent=t; $("tip").hidden=false;
+  clearTimeout(tipT);
+  tipT=setTimeout(function(){ $("tip").hidden=true; },14000);
+}
+function describeFormat(wPt,hPt){
+  var a=Math.max(wPt,hPt)*PT2MM, b=Math.min(wPt,hPt)*PT2MM;
+  for(var i=0;i<FORMATS.length;i++){
+    var f=FORMATS[i];
+    if(Math.abs(a-f[1])<12 && Math.abs(b-f[2])<12)
+      return f[0]+" "+(wPt>=hPt?"paysage":"portrait");
+  }
+  return Math.round(b)+"×"+Math.round(a)+" mm";
+}
+function normTxt(s){
+  return s.normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/\s+/g," ").trim();
+}
+
+/* ---------------------------------------------------------------------------
+   3. Worker : cycle de vie
+--------------------------------------------------------------------------- */
+/* Secours : si le navigateur refuse les workers (pages file:// de certains
+   navigateurs), on exécute le même code sur le thread principal. Le calcul
+   bloque alors brièvement l'interface, mais l'outil reste utilisable. */
+function inlineWorker(){
+  var host={onmessage:null,onerror:null,postMessage:null,terminate:function(){}};
+  var inner={
+    onmessage:null,
+    postMessage:function(m){
+      setTimeout(function(){ if(host.onmessage) host.onmessage({data:m}); },0);
+    }
+  };
+  new Function("self","return ("+matcherWorkerBody.toString()+")();")(inner);
+  host.postMessage=function(m){
+    setTimeout(function(){ if(inner.onmessage) inner.onmessage({data:m}); },0);
+  };
+  host.__inline=true;
+  return host;
+}
+function ensureWorker(){
+  if(worker) return worker;
+  var code="("+matcherWorkerBody.toString()+")();";
+  try{
+    var url=URL.createObjectURL(new Blob([code],{type:"text/javascript"}));
+    worker=new Worker(url);
+    URL.revokeObjectURL(url);
+  }catch(e){
+    worker=inlineWorker();
+    setStatus("Calcul sur le thread principal (workers refusés par le navigateur).",false);
+  }
+  worker.onmessage=function(e){
+    var m=e.data;
+    if(m.type==="progress"){ setProg(m.pct); return; }
+    if(m.type==="pageReady"){ src.ink=m.ink; refreshFields(); return; }
+    if(m.type==="result"){
+      var cb=pending[m.id]; delete pending[m.id];
+      workerBusy=false; setProg(0);
+      if(cb) cb(m);
+    }
+  };
+  worker.onerror=function(e){
+    workerBusy=false; setProg(0);
+    setStatus("Erreur du moteur de détection : "+(e.message||"inconnue"),false);
+  };
+  return worker;
+}
+function pushPageToWorker(){
+  if(!src.mask) return;
+  var w=ensureWorker();
+  var copy=src.mask.slice().buffer;
+  w.postMessage({type:"page",w:src.w,h:src.h,mask:copy},[copy]);
+}
+function matchTemplate(tpl,opts){
+  return new Promise(function(resolve){
+    var w=ensureWorker(), id=matchSeq++;
+    pending[id]=resolve; workerBusy=true;
+    var buf=tpl.mask.slice().buffer;
+    w.postMessage({type:"match",id:id,tpl:{w:tpl.w,h:tpl.h,mask:buf},opts:opts},[buf]);
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   4. Chargement du PDF
+--------------------------------------------------------------------------- */
+function openFile(file){
+  if(!file) return;
+  setStatus("Lecture de "+file.name+"…",true);
+  var fr=new FileReader();
+  fr.onerror=function(){ setStatus("Lecture du fichier impossible.",false); };
+  fr.onload=function(){ loadPdf(new Uint8Array(fr.result),file.name); };
+  fr.readAsArrayBuffer(file);
+}
+
+async function loadPdf(data,name){
+  try{
+    setStatus("Ouverture du document…",true); setProg(0.1);
+    var lib=await window.__pdfReady;
+    var task=lib.getDocument({data:data, isEvalSupported:false});
+    task.onProgress=function(p){ if(p.total) setProg(0.1+0.3*p.loaded/p.total); };
+    var doc=await task.promise;
+    if(pdfDoc && pdfDoc.destroy) try{ pdfDoc.destroy(); }catch(e){}
+    pdfDoc=doc; pdfName=name; pageCount=doc.numPages; pageNum=1;
+    src.demo=false;
+    $("drop").hidden=true;
+    legends.forEach(function(l){ l.res={}; });
+    await renderPage(1);
+    tip("Document ouvert", pageCount+" folio"+(pageCount>1?"s":"")+". Commencez par l'onglet Textes : si les étiquettes sont du vrai texte, le comptage sera exact.");
+  }catch(err){
+    setProg(0);
+    setStatus("PDF illisible : "+(err&&err.message||err),false);
+    tip("Échec de l'ouverture","Le fichier est peut-être protégé par mot de passe ou corrompu. Réenregistrez-le depuis votre lecteur PDF puis réessayez.");
+  }
+}
+
+async function renderPage(n){
+  if(!pdfDoc) return;
+  pageNum=clamp(n,1,pageCount);
+  setStatus("Rendu du folio "+pageNum+"…",true); setProg(0.2);
+  var page=await pdfDoc.getPage(pageNum);
+  var base=page.getViewport({scale:1});
+  var cap=parseInt($("s-dpi").value,10);
+  var scale=Math.min(cap/Math.max(base.width,base.height), 8);
+  if(!isFinite(scale)||scale<=0) scale=1;
+  var vp=page.getViewport({scale:scale});
+  var w=Math.max(1,Math.floor(vp.width)), h=Math.max(1,Math.floor(vp.height));
+
+  var cv=src.canvas||document.createElement("canvas");
+  cv.width=w; cv.height=h;
+  var ctx=cv.getContext("2d",{willReadFrequently:true});
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,w,h);
+  await page.render({canvasContext:ctx,viewport:vp,background:"#ffffff"}).promise;
+
+  src.canvas=cv; src.ctx=ctx; src.w=w; src.h=h;
+  src.viewport=vp; src.pageObj=page;
+  src.mmPerPx = (base.width*PT2MM)/w;
+
+  setProg(0.6);
+  binarize();
+  await extractText(page,vp);
+  pushPageToWorker();
+  fitView(); refreshFields(); redraw();
+  setProg(0);
+  setStatus("Folio "+pageNum+" prêt — "+w+"×"+h+" px",false);
+  if(legends.length) await recountAll();
+}
+
+/* binarisation : gris -> histogramme -> Otsu (ou seuil manuel) -> masque d'encre */
+function binarize(){
+  var w=src.w,h=src.h,ctx=src.ctx;
+  var hist=new Float64Array(256), mask=new Uint8Array(w*h);
+  var manual=parseInt($("r-ink").value,10)||0;
+  var STRIP=Math.max(1,Math.floor(2000000/w));
+  var gray=new Uint8Array(w*h), y, x;
+  for(var y0=0;y0<h;y0+=STRIP){
+    var hh=Math.min(STRIP,h-y0);
+    var d=ctx.getImageData(0,y0,w,hh).data;
+    for(var i=0,p=y0*w,n=w*hh;i<n;i++){
+      var o=i<<2, a=d[o+3];
+      var g=a===0 ? 255 : (((d[o]*77+d[o+1]*151+d[o+2]*28)>>8)*a + 255*(255-a))/255;
+      g=g|0; gray[p+i]=g; hist[g]++;
+    }
+  }
+  var thr=manual>0?manual:otsu(hist,w*h);
+  for(var k=0;k<gray.length;k++) mask[k]=gray[k]<=thr?1:0;
+  src.mask=mask; src.thr=thr;
+  $("v-ink").textContent = manual>0 ? String(thr) : "auto ("+thr+")";
+}
+function otsu(hist,total){
+  var sum=0,i;
+  for(i=0;i<256;i++) sum+=i*hist[i];
+  var sumB=0,wB=0,best=0,thr=128;
+  for(i=0;i<256;i++){
+    wB+=hist[i]; if(!wB) continue;
+    var wF=total-wB; if(!wF) break;
+    sumB+=i*hist[i];
+    var mB=sumB/wB, mF=(sum-sumB)/wF, v=wB*wF*(mB-mF)*(mB-mF);
+    if(v>best){ best=v; thr=i; }
+  }
+  return clamp(thr+6,30,235);   // léger biais : on préfère garder les traits fins
+}
+
+async function extractText(page,vp){
+  src.text=[];
+  try{
+    var tc=await page.getTextContent({disableCombineTextItems:false});
+    for(var i=0;i<tc.items.length;i++){
+      var it=tc.items[i];
+      if(!it.str || !it.str.trim()) continue;
+      var tr=it.transform;
+      var pv=vp.convertToViewportPoint(tr[4],tr[5]);
+      src.text.push({s:it.str, n:normTxt(it.str),
+        x:pv[0], y:pv[1],
+        ux:tr[4], uy:tr[5],
+        a:tr[0], b:tr[1], c:tr[2], d:tr[3],
+        w:(it.width||0)*vp.scale, h:(it.height||0)*vp.scale});
+    }
+  }catch(e){ /* page sans couche texte */ }
+  buildInventory();
+}
+
+/* ---------------------------------------------------------------------------
+   5. Plan de démonstration
+   Tracé vectoriel déterministe : l'outil s'ouvre sur un cas réel et la
+   chaîne de détection complète tourne dès le chargement.
+--------------------------------------------------------------------------- */
+var DEMO_LABELS={pc:"Prise 2P+T 16 A",dcl:"Point lumineux DCL",rj:"Prise RJ45 Cat.6",
+                 sa:"Interrupteur SA",df:"Détecteur de fumée"};
+function lcg(seed){ var s=seed>>>0; return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+
+function drawSymbol(c,kind,x,y,s){
+  c.save(); c.translate(x,y); c.lineWidth=Math.max(1.6,s*0.11);
+  c.strokeStyle="#000"; c.fillStyle="#000"; c.lineCap="round"; c.lineJoin="round";
+  if(kind==="pc"){
+    c.beginPath(); c.arc(0,0,s,Math.PI,0,false); c.stroke();
+    c.beginPath(); c.moveTo(-s,0); c.lineTo(s,0); c.stroke();
+    c.beginPath(); c.moveTo(0,0); c.lineTo(0,s*1.05); c.stroke();
+    c.beginPath(); c.moveTo(-s*0.42,-s*0.52); c.lineTo(-s*0.42,-s*0.1); c.stroke();
+    c.beginPath(); c.moveTo( s*0.42,-s*0.52); c.lineTo( s*0.42,-s*0.1); c.stroke();
+  } else if(kind==="dcl"){
+    c.beginPath(); c.arc(0,0,s*0.9,0,Math.PI*2); c.stroke();
+    var d=s*0.64;
+    c.beginPath(); c.moveTo(-d,-d); c.lineTo(d,d); c.moveTo(d,-d); c.lineTo(-d,d); c.stroke();
+  } else if(kind==="rj"){
+    c.beginPath(); c.rect(-s*0.88,-s*0.88,s*1.76,s*1.76); c.stroke();
+    c.beginPath(); c.moveTo(-s*0.3,-s*0.48); c.lineTo(s*0.46,0); c.lineTo(-s*0.3,s*0.48); c.closePath(); c.fill();
+  } else if(kind==="sa"){
+    c.beginPath(); c.arc(0,0,s*0.26,0,Math.PI*2); c.fill();
+    c.beginPath(); c.moveTo(s*0.2,-s*0.16); c.lineTo(s*1.0,-s*0.78); c.stroke();
+    c.beginPath(); c.moveTo(s*0.72,-s*1.0); c.lineTo(s*1.1,-s*0.52); c.stroke();
+  } else if(kind==="df"){
+    /* triangle + pastille : ni le cercle du DCL ni le carré de la RJ45, pour
+       que les trois repères de la démonstration restent discernables au seuil
+       par défaut. Deux symboles partageant leur contour se confondent, et
+       c'est au seuil de les séparer — voir le profil des scores. */
+    c.beginPath();
+    for(var k=0;k<3;k++){
+      var an=-Math.PI/2+k*2*Math.PI/3, rr=s*1.02;
+      if(k) c.lineTo(Math.cos(an)*rr,Math.sin(an)*rr);
+      else  c.moveTo(Math.cos(an)*rr,Math.sin(an)*rr);
+    }
+    c.closePath(); c.stroke();
+    c.beginPath(); c.arc(0,s*0.12,s*0.26,0,Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+
+function buildDemo(){
+  var W=2400,H=1660,S=18;
+  var cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+  var c=cv.getContext("2d",{willReadFrequently:true});
+  c.fillStyle="#fff"; c.fillRect(0,0,W,H);
+  c.strokeStyle="#000"; c.fillStyle="#000";
+  c.lineWidth=2.4; c.strokeRect(26,26,W-52,H-52);
+  c.lineWidth=1.2; c.strokeRect(38,38,W-76,H-76);
+
+  /* --- cartouche --- */
+  var bx=W-700, by=H-200;
+  c.lineWidth=2; c.strokeRect(bx,by,662,162);
+  c.lineWidth=1;
+  c.beginPath(); c.moveTo(bx,by+52); c.lineTo(bx+662,by+52);
+  c.moveTo(bx,by+104); c.lineTo(bx+662,by+104); c.moveTo(bx+420,by); c.lineTo(bx+420,by+162); c.stroke();
+  c.font="600 26px 'IBM Plex Sans Condensed',sans-serif";
+  c.fillText("PLAN DE DÉMONSTRATION",bx+14,by+36);
+  c.font="400 17px 'IBM Plex Mono',monospace";
+  c.fillText("LOT 05 — CFO / CFA",bx+14,by+84);
+  c.fillText("NIVEAU R+1 — COURANTS FORTS & FAIBLES",bx+14,by+136);
+  c.fillText("ÉCH. 1:50",bx+436,by+36);
+  c.fillText("FOLIO E-04",bx+436,by+84);
+  c.fillText("INDICE B",bx+436,by+136);
+
+  /* --- locaux --- */
+  var rooms=[
+    [120,150,560,420,"BUREAU 1"],[700,150,520,420,"BUREAU 2"],[1240,150,470,420,"SALLE DE RÉUNION"],
+    [1730,150,540,420,"OPEN SPACE"],[120,590,760,430,"PLATEAU TECHNIQUE"],
+    [900,590,560,430,"CIRCULATION"],[1480,590,790,430,"ATELIER"],
+    [120,1040,700,380,"LOCAL TGBT"],[840,1040,620,380,"ARCHIVES"]
+  ];
+  c.font="600 21px 'IBM Plex Sans Condensed',sans-serif";
+  for(var i=0;i<rooms.length;i++){
+    var r=rooms[i];
+    c.lineWidth=5.2; c.strokeRect(r[0],r[1],r[2],r[3]);
+    c.lineWidth=1.1; c.strokeRect(r[0]+9,r[1]+9,r[2]-18,r[3]-18);
+    c.fillText(r[4],r[0]+20,r[1]+36);
+  }
+
+  /* --- tableau de légende --- */
+  var lx=1500, ly=1060, rowH=58, kinds=["pc","dcl","rj","sa","df"];
+  c.lineWidth=2; c.strokeRect(lx,ly,770,rowH*(kinds.length+1));
+  c.lineWidth=1;
+  c.beginPath(); c.moveTo(lx+100,ly); c.lineTo(lx+100,ly+rowH*(kinds.length+1)); c.stroke();
+  c.font="600 20px 'IBM Plex Sans Condensed',sans-serif";
+  c.fillText("NOMENCLATURE DES OUVRAGES",lx+118,ly+36);
+  c.beginPath(); c.moveTo(lx,ly+rowH); c.lineTo(lx+770,ly+rowH); c.stroke();
+  var legendBoxes={};
+  c.font="400 20px 'IBM Plex Mono',monospace";
+  for(i=0;i<kinds.length;i++){
+    var yy=ly+rowH*(i+1), cy=yy+rowH/2, cx=lx+50;
+    if(i) { c.beginPath(); c.moveTo(lx,yy); c.lineTo(lx+770,yy); c.stroke(); }
+    drawSymbol(c,kinds[i],cx,cy,S);
+    legendBoxes[kinds[i]]={x:Math.round(cx-S*1.45),y:Math.round(cy-S*1.45),
+                           w:Math.round(S*2.9),h:Math.round(S*2.9)};
+    c.fillText(DEMO_LABELS[kinds[i]],lx+118,cy+8);
+  }
+
+  /* --- implantation --- */
+  var rnd=lcg(20260407), counts={pc:0,dcl:0,rj:0,sa:0,df:0}, placed=[];
+  var plan=[[6,3,2,1,1],[5,3,2,1,1],[4,2,3,1,1],[7,4,4,1,1],[6,3,2,2,1],
+            [2,2,0,1,1],[6,3,2,2,1],[3,2,1,1,0],[2,2,1,1,0]];
+  for(i=0;i<rooms.length;i++){
+    var r2=rooms[i], q=plan[i], ks=["pc","dcl","rj","sa","df"], pts=[];
+    for(var ki=0;ki<ks.length;ki++){
+      for(var j=0;j<q[ki];j++){
+        for(var att=0;att<60;att++){
+          var px=r2[0]+40+rnd()*(r2[2]-80), py=r2[1]+64+rnd()*(r2[3]-104), ok=true;
+          for(var pi=0;pi<pts.length;pi++)
+            if(Math.hypot(pts[pi][0]-px,pts[pi][1]-py)<S*3.4){ ok=false; break; }
+          if(ok){ pts.push([px,py,ks[ki]]); break; }
+        }
+      }
+    }
+    /* filerie */
+    c.save(); c.strokeStyle="#000"; c.lineWidth=1.1; c.setLineDash([9,6]);
+    for(pi=1;pi<pts.length;pi++){
+      c.beginPath(); c.moveTo(pts[pi-1][0],pts[pi-1][1]+S*1.3);
+      c.lineTo(pts[pi][0],pts[pi][1]+S*1.3); c.stroke();
+    }
+    c.restore();
+    for(pi=0;pi<pts.length;pi++){
+      drawSymbol(c,pts[pi][2],pts[pi][0],pts[pi][1],S);
+      counts[pts[pi][2]]++;
+      placed.push([pts[pi][0],pts[pi][1],pts[pi][2]]);
+    }
+  }
+  return {canvas:cv,ctx:c,w:W,h:H,legendBoxes:legendBoxes,counts:counts,placements:placed};
+}
+
+async function loadDemo(){
+  var d=buildDemo();
+  pdfDoc=null; pdfName="Plan de démonstration"; pageCount=1; pageNum=1;
+  src.canvas=d.canvas; src.ctx=d.ctx; src.w=d.w; src.h=d.h;
+  src.viewport=null; src.pageObj=null; src.demo=true; src.text=[]; src.mmPerPx=841/d.w;
+  binarize(); buildInventory(); pushPageToWorker();
+  fitView(); refreshFields(); redraw();
+  setStatus("Plan de démonstration — détection en cours…",true);
+  var want=[["pc",PALETTE[0]],["dcl",PALETTE[1]],["rj",PALETTE[2]]];
+  for(var i=0;i<want.length;i++){
+    var k=want[i][0], b=d.legendBoxes[k];
+    var l=newLegendFromRect(b,DEMO_LABELS[k],want[i][1]);
+    if(l) await runLegend(l);
+  }
+  selId = legends.length?legends[0].id:null;
+  renderNomen(); redraw();
+  setStatus("Plan de démonstration — "+legends.length+" repères détectés",false);
+  tip("Démonstration","Ces 3 repères ont été comptés automatiquement depuis le tableau de nomenclature, en bas à droite. Ouvrez votre PDF pour travailler sur un vrai plan.");
+}
+
+/* ---------------------------------------------------------------------------
+   6. Vue : cadrage, rendu, interactions
+--------------------------------------------------------------------------- */
+function stageSize(){
+  var st=$("stage");
+  return {w:Math.max(1,st.clientWidth), h:Math.max(1,st.clientHeight)};
+}
+function fitView(){
+  if(!src.w) return;
+  var s=stageSize(), pad=22;
+  view.k=Math.min((s.w-pad*2)/src.w,(s.h-pad*2)/src.h);
+  if(!isFinite(view.k)||view.k<=0) view.k=1;
+  view.tx=(s.w-src.w*view.k)/2; view.ty=(s.h-src.h*view.k)/2;
+}
+function zoomAt(cx,cy,f){
+  var k2=clamp(view.k*f,0.01,24);
+  f=k2/view.k;
+  view.tx=cx-(cx-view.tx)*f; view.ty=cy-(cy-view.ty)*f; view.k=k2;
+  redraw();
+}
+function v2s(x,y){ return [(x-view.tx)/view.k,(y-view.ty)/view.k]; }
+function s2v(x,y){ return [x*view.k+view.tx, y*view.k+view.ty]; }
+
+function redraw(){
+  if(needRedraw) return;
+  needRedraw=true;
+  requestAnimationFrame(function(){ needRedraw=false; paint(); });
+}
+
+var inkCanvas=null;
+function inkPreview(){
+  if(!src.mask) return null;
+  if(inkCanvas && inkCanvas.width===src.w && inkCanvas.height===src.h && inkCanvas.__thr===src.thr)
+    return inkCanvas;
+  var cv=document.createElement("canvas"); cv.width=src.w; cv.height=src.h;
+  var ct=cv.getContext("2d"), im=ct.createImageData(src.w,src.h), d=im.data;
+  for(var i=0;i<src.mask.length;i++){
+    var o=i<<2, v=src.mask[i]?0:255;
+    d[o]=v; d[o+1]=v; d[o+2]=v; d[o+3]=255;
+  }
+  ct.putImageData(im,0,0); cv.__thr=src.thr; inkCanvas=cv;
+  return cv;
+}
+
+function paint(){
+  var cv=$("view"), st=stageSize();
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  if(cv.width!==Math.round(st.w*dpr)||cv.height!==Math.round(st.h*dpr)){
+    cv.width=Math.round(st.w*dpr); cv.height=Math.round(st.h*dpr);
+  }
+  var g=cv.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0);
+  var css=getComputedStyle(document.body);
+  g.fillStyle=css.getPropertyValue("--stage")||"#d7dce3";
+  g.fillRect(0,0,st.w,st.h);
+  if(!src.w){ return; }
+
+  /* quadrillage de fond, pas de 10 mm */
+  var step=10/Math.max(src.mmPerPx||0.3,0.0001)*view.k;
+  if(step>7 && step<400){
+    g.strokeStyle="rgba(128,140,155,.28)"; g.lineWidth=1;
+    g.beginPath();
+    var x0=view.tx%step, y0=view.ty%step;
+    for(var x=x0;x<st.w;x+=step){ g.moveTo(Math.round(x)+.5,0); g.lineTo(Math.round(x)+.5,st.h); }
+    for(var y=y0;y<st.h;y+=step){ g.moveTo(0,Math.round(y)+.5); g.lineTo(st.w,Math.round(y)+.5); }
+    g.stroke();
+  }
+
+  /* papier */
+  var W=src.w*view.k, H=src.h*view.k;
+  g.save();
+  g.shadowColor="rgba(0,0,0,.35)"; g.shadowBlur=18; g.shadowOffsetY=5;
+  g.fillStyle="#fff"; g.fillRect(view.tx,view.ty,W,H);
+  g.restore();
+  g.imageSmoothingEnabled=true; g.imageSmoothingQuality="high";
+  var img=showInk?inkPreview():src.canvas;
+  if(img) g.drawImage(img,view.tx,view.ty,W,H);
+
+  if(showMarks) paintMarks(g);
+
+  if(pickRect){
+    g.save();
+    g.strokeStyle="#0a6b78"; g.lineWidth=1.5; g.setLineDash([5,4]);
+    g.fillStyle="rgba(10,107,120,.12)";
+    var a=s2v(pickRect.x,pickRect.y), b=s2v(pickRect.x+pickRect.w,pickRect.y+pickRect.h);
+    g.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+    g.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+    g.restore();
+  }
+  $("st-zoom").textContent=Math.round(view.k*100)+" %";
+}
+
+function paintMarks(g){
+  for(var i=0;i<legends.length;i++){
+    var l=legends[i];
+    if(!l.visible) continue;
+    var pts=points(l), sel=(l.id===selId);
+    g.save();
+    g.strokeStyle=l.color; g.lineWidth=sel?2.2:1.5;
+    g.fillStyle=hexA(l.color, sel?0.17:0.10);
+    var rw=(l.tpl?l.tpl.w:18)*view.k, rh=(l.tpl?l.tpl.h:18)*view.k;
+    var small=Math.max(rw,rh)<7;
+    for(var j=0;j<pts.length;j++){
+      var p=s2v(pts[j].x,pts[j].y);
+      if(p[0]<-60||p[1]<-60||p[0]>g.canvas.width+60||p[1]>g.canvas.height+60) continue;
+      if(small || l.kind==="text"){
+        g.beginPath(); g.arc(p[0],p[1],sel?6:5,0,Math.PI*2); g.fill(); g.stroke();
+      } else {
+        g.beginPath(); g.rect(p[0]-rw/2,p[1]-rh/2,rw,rh); g.fill(); g.stroke();
+        if(sel && rw>16){
+          g.beginPath(); g.moveTo(p[0]-3,p[1]); g.lineTo(p[0]+3,p[1]);
+          g.moveTo(p[0],p[1]-3); g.lineTo(p[0],p[1]+3); g.stroke();
+        }
+      }
+    }
+    g.restore();
+  }
+}
+function hexA(hex,a){
+  var n=parseInt(hex.slice(1),16);
+  return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+a+")";
+}
+
+/* ---------------------------------------------------------------------------
+   7. Repères : création, détection, filtrage
+--------------------------------------------------------------------------- */
+function legendRes(l){
+  var k=String(pageNum);
+  return l.res[k]||(l.res[k]={cands:[],manual:[],rejected:[],tw:0,th:0,pts:null});
+}
+function invalidate(l){ var k=String(pageNum); if(l.res[k]) l.res[k].pts=null; }
+function scoreOf(c,pen){
+  if(pen<=0) return c.rec;
+  if(pen>=1) return c.pre;
+  return Math.pow(c.rec,1-pen)*Math.pow(Math.max(c.pre,1e-6),pen);
+}
+function gridNms(list,dx,dy){
+  list.sort(function(a,b){ return b.s-a.s; });
+  var keep=[], gx=Math.max(1,dx), gy=Math.max(1,dy), grid={};
+  for(var i=0;i<list.length;i++){
+    var c=list[i], gi=(c.x/gx)|0, gj=(c.y/gy)|0, hit=false;
+    for(var a=-1;a<=1&&!hit;a++) for(var b=-1;b<=1&&!hit;b++){
+      var cell=grid[(gi+a)+":"+(gj+b)];
+      if(!cell) continue;
+      for(var k=0;k<cell.length;k++)
+        if(Math.abs(cell[k].x-c.x)<dx && Math.abs(cell[k].y-c.y)<dy){ hit=true; break; }
+    }
+    if(hit) continue;
+    var key=gi+":"+gj;
+    (grid[key]||(grid[key]=[])).push(c);
+    keep.push(c);
+  }
+  return keep;
+}
+/* Tous les candidats dédoublonnés, seuil non appliqué. Filtrer puis
+   dédoublonner ou l'inverse donne le même résultat — un point suppresseur a
+   toujours un score supérieur à celui qu'il supprime — donc on dédoublonne une
+   fois et le seuil ne fait plus que trancher dans la liste. */
+function allPoints(l){
+  var r=legendRes(l), key=l.pen+"|"+l.nms+"|"+r.cands.length;
+  if(r.allKey===key && r.all) return r.all;
+  var lst=[];
+  for(var i=0;i<r.cands.length;i++){
+    var c=r.cands[i], sc=scoreOf(c,l.pen);
+    if(sc>=0.40) lst.push({x:c.x+c.w/2, y:c.y+c.h/2, s:sc, c:c});
+  }
+  var dx=Math.max(3,(r.tw||14)*l.nms), dy=Math.max(3,(r.th||14)*l.nms);
+  r.all=gridNms(lst,dx,dy); r.allKey=key;
+  return r.all;
+}
+function points(l){
+  var r=legendRes(l);
+  if(r.pts) return r.pts;
+  var all=allPoints(l), lst=[], i;
+  for(i=0;i<all.length;i++) if(all[i].s>=l.thr) lst.push(all[i]);
+  if(r.rejected.length){
+    var rr=Math.max(7,Math.min(r.tw||14,r.th||14)*0.6);
+    lst=lst.filter(function(p){
+      for(var j=0;j<r.rejected.length;j++){
+        var q=r.rejected[j];
+        if(Math.abs(q.x-p.x)<rr && Math.abs(q.y-p.y)<rr) return false;
+      }
+      return true;
+    });
+  }
+  for(i=0;i<r.manual.length;i++)
+    lst.push({x:r.manual[i].x, y:r.manual[i].y, s:1, man:true});
+  r.pts=lst;
+  return lst;
+}
+function countOf(l){ return points(l).length; }
+function totalOf(l){
+  var t=0;
+  for(var k in l.res){
+    var save=pageNum; pageNum=parseInt(k,10);
+    t+=points(l).length; pageNum=save;
+  }
+  return t;
+}
+
+function extractTemplate(rc){
+  if(!src.mask) return null;
+  var x=clamp(Math.round(rc.x),0,src.w-1), y=clamp(Math.round(rc.y),0,src.h-1);
+  var w=clamp(Math.round(rc.w),1,src.w-x), h=clamp(Math.round(rc.h),1,src.h-y);
+  var minx=w,maxx=-1,miny=h,maxy=-1,i,j;
+  for(j=0;j<h;j++){
+    var row=(y+j)*src.w+x;
+    for(i=0;i<w;i++) if(src.mask[row+i]){
+      if(i<minx)minx=i; if(i>maxx)maxx=i; if(j<miny)miny=j; if(j>maxy)maxy=j;
+    }
+  }
+  if(maxx<0) return null;
+  var tx=x+minx, ty=y+miny, tw=maxx-minx+1, th=maxy-miny+1;
+  var m=new Uint8Array(tw*th);
+  for(j=0;j<th;j++){
+    var r2=(ty+j)*src.w+tx, o=j*tw;
+    for(i=0;i<tw;i++) m[o+i]=src.mask[r2+i];
+  }
+  return {x:tx,y:ty,w:tw,h:th,mask:m};
+}
+function thumbOf(t){
+  var TW=76,TH=60, cv=document.createElement("canvas");
+  cv.width=TW; cv.height=TH;
+  var g=cv.getContext("2d");
+  g.fillStyle="#fff"; g.fillRect(0,0,TW,TH);
+  var f=Math.min((TW-6)/t.w,(TH-6)/t.h,4);
+  g.imageSmoothingEnabled=true; g.imageSmoothingQuality="high";
+  try{
+    g.drawImage(src.canvas, t.x,t.y,t.w,t.h,
+      (TW-t.w*f)/2,(TH-t.h*f)/2, t.w*f, t.h*f);
+  }catch(e){}
+  return cv.toDataURL("image/png");
+}
+function newLegendFromRect(rc,name,color){
+  var t=extractTemplate(rc);
+  if(!t){
+    tip("Sélection vide","Aucun trait dans le rectangle. Encadrez bien le symbole, au plus serré.");
+    return null;
+  }
+  if(t.w<4||t.h<4){
+    tip("Sélection trop petite","Le symbole mesure "+t.w+"×"+t.h+" px. Zoomez, ou montez la finesse de rendu.");
+    return null;
+  }
+  var l={
+    id:"L"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    rep:nextRep++, kind:"symbol",
+    name:name||("Repère "+nextRep), color:color||PALETTE[legends.length%PALETTE.length],
+    tpl:{w:t.w,h:t.h,mask:t.mask}, thumb:thumbOf(t),
+    thr:0.80, pen:0.35, nms:0.6, rot:false, mir:false, scaleMode:"1",
+    visible:true, res:{}, lastMs:0, err:null
+  };
+  legends.push(l); selId=l.id;
+  renderNomen(); syncTune();
+  return l;
+}
+function scalesFor(mode){
+  if(mode==="2") return [0.9,1,1.1];
+  if(mode==="3") return [0.8,0.9,1,1.1,1.2];
+  return [1];
+}
+async function runLegend(l){
+  if(l.kind==="text"){ countText(l); return; }
+  if(!src.mask||!l.tpl) return;
+  setStatus("Détection « "+l.name+" »…",true);
+  var res=await matchTemplate(l.tpl,{
+    rotations: l.rot?[0,90,180,270]:[0],
+    mirror: !!l.mir,
+    scales: scalesFor(l.scaleMode),
+    floor: 0.45
+  });
+  var r=legendRes(l);
+  r.cands=res.hits||[]; r.tw=res.tw||l.tpl.w; r.th=res.th||l.tpl.h; r.pts=null;
+  l.lastMs=res.ms||0; l.err=res.err||null;
+  renderNomen(); syncTune(); redraw(); refreshFields();
+  setStatus(l.err ? ("Détection impossible : "+l.err)
+                  : ("« "+l.name+" » — "+countOf(l)+" occurrence(s) en "+(l.lastMs||0)+" ms"), false);
+}
+async function recountAll(){
+  for(var i=0;i<legends.length;i++) await runLegend(legends[i]);
+}
+
+/* ---------------------------------------------------------------------------
+   8. Nomenclature (interface)
+--------------------------------------------------------------------------- */
+function renderNomen(){
+  var box=$("nomen"), head=box.querySelector(".nomen-head");
+  while(box.lastChild && box.lastChild!==head) box.removeChild(box.lastChild);
+  if(!legends.length){
+    var e=document.createElement("div");
+    e.className="empty-list"; e.id="nomen-empty";
+    e.innerHTML="Aucun repère.<br>Encadrez un symbole sur le plan pour créer une ligne.";
+    box.appendChild(e);
+  } else {
+    var max=1;
+    legends.forEach(function(l){ max=Math.max(max,countOf(l)); });
+    legends.forEach(function(l){
+      var n=countOf(l);
+      var row=document.createElement("div");
+      row.className="leg"+(l.id===selId?" sel":"");
+      row.tabIndex=0; row.setAttribute("role","button");
+      row.title=l.name+" — cliquer pour sélectionner";
+      var sym = l.kind==="text"
+        ? '<div class="sym txt">'+escHtml(l.needle||"?")+'</div>'
+        : '<img class="sym" alt="" src="'+(l.thumb||"")+'">';
+      row.innerHTML=
+        '<div class="rep">'+String(l.rep).padStart(2,"0")+'</div>'+sym+
+        '<div class="nm"><b>'+escHtml(l.name)+'</b><i>'+legMeta(l)+'</i></div>'+
+        '<div class="cnt" style="color:'+l.color+'">'+n+'</div>'+
+        '<button class="eye" aria-pressed="'+(l.visible?"true":"false")+'" title="Afficher / masquer">●</button>'+
+        '<div class="bar"><i style="width:'+Math.round(n/max*100)+'%;background:'+l.color+'"></i></div>';
+      row.querySelector(".eye").style.color=l.color;
+      row.querySelector(".eye").addEventListener("click",function(ev){
+        ev.stopPropagation(); l.visible=!l.visible; renderNomen(); redraw();
+      });
+      row.addEventListener("click",function(){ selId=l.id; renderNomen(); syncTune(); redraw(); });
+      row.addEventListener("keydown",function(ev){
+        if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); selId=l.id; renderNomen(); syncTune(); redraw(); }
+      });
+      box.appendChild(row);
+    });
+  }
+  var tot=0;
+  legends.forEach(function(l){ tot+=countOf(l); });
+  $("tot-page").textContent=nf(tot);
+  $("f-total").textContent=nf(tot);
+  $("f-legs").textContent=String(legends.length);
+  renderRecap();
+}
+function legMeta(l){
+  if(l.kind==="text") return "texte"+(l.opts&&l.opts.word?" · mot entier":"")+(l.opts&&l.opts.regex?" · regex":"");
+  var p=[];
+  p.push(l.tpl.w+"×"+l.tpl.h+" px");
+  p.push("s≥"+l.thr.toFixed(2));
+  if(l.rot) p.push("rot");
+  if(l.mir) p.push("sym");
+  if(l.scaleMode!=="1") p.push("éch±");
+  var r=legendRes(l);
+  if(r.manual.length) p.push("+"+r.manual.length);
+  if(r.rejected.length) p.push("−"+r.rejected.length);
+  return p.join(" · ");
+}
+function escHtml(s){
+  return String(s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function selected(){
+  for(var i=0;i<legends.length;i++) if(legends[i].id===selId) return legends[i];
+  return null;
+}
+function syncTune(){
+  var l=selected();
+  $("tune").hidden=!l;
+  if(!l) return;
+  if(l.kind==="text"){
+    $("tune").hidden=true;
+    return;
+  }
+  $("r-thr").value=l.thr; $("v-thr").textContent=l.thr.toFixed(2);
+  $("r-pen").value=l.pen; $("v-pen").textContent=l.pen.toFixed(2);
+  $("r-nms").value=l.nms; $("v-nms").textContent=Math.round(l.nms*100)+" %";
+  $("c-rot").checked=l.rot; $("c-mir").checked=l.mir;
+  $("s-scale").value=l.scaleMode;
+  var r=legendRes(l);
+  $("tune-stat").textContent = r.cands.length
+    ? (r.cands.length+" candidats analysés · "+countOf(l)+" retenus"+(l.lastMs?" · "+l.lastMs+" ms":""))
+    : (l.err ? ("Erreur : "+l.err) : "Aucun candidat.");
+  drawCurve();
+}
+/* ---------------------------------------------------------------------------
+   Courbe de stabilité : occurrences retenues en fonction du seuil.
+   Une seule série, donc pas de légende — le titre la nomme. Échelle verticale
+   logarithmique et graduée, parce que le bruit à bas seuil se compte en
+   centaines alors que le comptage utile se compte en dizaines ; sans cela le
+   palier intéressant serait écrasé contre l'axe.
+--------------------------------------------------------------------------- */
+var CURVE={x0:28,x1:294,y0:9,y1:66,T0:0.45,T1:1,n:null,max:1};
+function curveCount(scores,t){
+  var lo=0,hi=scores.length;
+  while(lo<hi){ var m=(lo+hi)>>1; if(scores[m]>=t) lo=m+1; else hi=m; }
+  return lo;
+}
+function drawCurve(){
+  var box=$("curve"), host=$("curve-plot"), l=selected();
+  if(!l || l.kind!=="symbol" || !l.tpl){ box.hidden=true; return; }
+  var all=allPoints(l);
+  if(all.length<2){ box.hidden=true; return; }
+  box.hidden=false;
+  var scores=all.map(function(p){ return p.s; }).sort(function(a,b){ return b-a; });
+  var C=CURVE, maxN=curveCount(scores,C.T0)||1;
+  C.n=scores; C.max=maxN;
+  var lg=function(v){ return Math.log(v+1)/Math.log(maxN+1); };
+  var X=function(t){ return C.x0+(t-C.T0)/(C.T1-C.T0)*(C.x1-C.x0); };
+  var Y=function(v){ return C.y1-lg(v)*(C.y1-C.y0); };
+
+  /* graduations verticales : puissances de 10 dans la plage, plus le maximum */
+  var ticks=[], v=1;
+  while(v<=maxN){ ticks.push(v); v*=10; }
+  /* le maximum est toujours gradué ; on retire la puissance de 10 qui le
+     jouxterait, sinon les deux étiquettes se chevauchent */
+  if(ticks[ticks.length-1]!==maxN){
+    if(ticks.length>1 && lg(maxN)-lg(ticks[ticks.length-1])<0.1) ticks.pop();
+    ticks.push(maxN);
+  }
+
+  var g=[];
+  g.push('<svg viewBox="0 0 300 84" role="img" aria-label="Occurrences retenues selon le seuil de similarité">');
+  /* grille discrète */
+  ticks.forEach(function(t){
+    g.push('<line x1="'+C.x0+'" x2="'+C.x1+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+
+           '" stroke="var(--rule-soft)" stroke-width="1"/>');
+    g.push('<text x="'+(C.x0-5)+'" y="'+(Y(t)+3).toFixed(1)+'" text-anchor="end" '+
+           'fill="var(--muted)" font-size="7.5" font-family="var(--f-mono)">'+t+'</text>');
+  });
+  [0.5,0.6,0.7,0.8,0.9,1].forEach(function(t){
+    g.push('<line x1="'+X(t).toFixed(1)+'" x2="'+X(t).toFixed(1)+'" y1="'+C.y0+'" y2="'+C.y1+
+           '" stroke="var(--rule-soft)" stroke-width="1"/>');
+    g.push('<text x="'+X(t).toFixed(1)+'" y="'+(C.y1+11)+'" text-anchor="middle" '+
+           'fill="var(--muted)" font-size="7.5" font-family="var(--f-mono)">'+
+           t.toFixed(1).replace(".",",")+'</text>');
+  });
+  /* escalier : le comptage ne change qu'aux scores des candidats */
+  var N=132, pts=[], i;
+  for(i=0;i<=N;i++){
+    var t=C.T0+(C.T1-C.T0)*i/N;
+    pts.push([X(t),Y(curveCount(scores,t))]);
+  }
+  var step="M"+pts[0][0].toFixed(1)+" "+pts[0][1].toFixed(1);
+  for(i=1;i<pts.length;i++)
+    step+="H"+pts[i][0].toFixed(1)+"V"+pts[i][1].toFixed(1);
+  g.push('<path d="'+step+'V'+C.y1+'H'+pts[0][0].toFixed(1)+'Z" fill="var(--accent)" opacity=".13"/>');
+  g.push('<path d="'+step+'" fill="none" stroke="var(--accent)" stroke-width="2" '+
+         'stroke-linejoin="round" stroke-linecap="round"/>');
+  /* seuil courant */
+  var tx=X(clamp(l.thr,C.T0,C.T1)), ty=Y(curveCount(scores,l.thr));
+  g.push('<line x1="'+tx.toFixed(1)+'" x2="'+tx.toFixed(1)+'" y1="'+(C.y0-2)+'" y2="'+(C.y1+2)+
+         '" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 2"/>');
+  g.push('<circle cx="'+tx.toFixed(1)+'" cy="'+ty.toFixed(1)+'" r="3.5" fill="var(--accent)" '+
+         'stroke="var(--surface-2)" stroke-width="2"/>');
+  g.push('</svg>');
+  var tip=$("curve-tip");
+  host.innerHTML=g.join("");
+  host.appendChild(tip);
+  $("curve-val").textContent=countOf(l)+" occurrence"+(countOf(l)>1?"s":"")+" au seuil "+l.thr.toFixed(2).replace(".",",");
+}
+function curveT(ev){
+  var r=$("curve-plot").getBoundingClientRect();
+  var u=(ev.clientX-r.left)/r.width*300;
+  return clamp(CURVE.T0+(u-CURVE.x0)/(CURVE.x1-CURVE.x0)*(CURVE.T1-CURVE.T0),
+               CURVE.T0,0.99);
+}
+function initCurve(){
+  var host=$("curve-plot"), tip=$("curve-tip");
+  host.addEventListener("pointermove",function(ev){
+    if(!CURVE.n){ return; }
+    var t=curveT(ev), n=curveCount(CURVE.n,t);
+    var r=host.getBoundingClientRect();
+    tip.textContent="seuil "+t.toFixed(2).replace(".",",")+" → "+n;
+    tip.classList.add("on");
+    tip.style.left=clamp(ev.clientX-r.left,26,r.width-26)+"px";
+    tip.style.top="16px";
+  });
+  host.addEventListener("pointerleave",function(){ tip.classList.remove("on"); });
+  host.addEventListener("pointerdown",function(ev){
+    var l=selected(); if(!l||!CURVE.n) return;
+    l.thr=Math.round(curveT(ev)*100)/100;
+    $("r-thr").value=l.thr; $("v-thr").textContent=l.thr.toFixed(2);
+    invalidate(l); renderNomen(); syncTuneStatOnly(); redraw();
+  });
+}
+function refreshFields(){
+  $("f-doc").textContent = pdfName ? (pdfName.length>26?pdfName.slice(0,24)+"…":pdfName) : "—";
+  $("f-page").textContent = pageCount ? (pageNum+" / "+pageCount) : "—";
+  if(src.viewport && src.pageObj){
+    var v=src.pageObj.view;
+    $("f-fmt").textContent=describeFormat((v[2]-v[0]),(v[3]-v[1]));
+  } else $("f-fmt").textContent = src.demo?"A1 paysage":"—";
+  $("f-res").textContent = src.w ? (src.w+"×"+src.h+" px") : "—";
+}
+function renderRecap(){
+  var tb=$("recap").querySelector("tbody");
+  tb.innerHTML="";
+  legends.forEach(function(l){
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+String(l.rep).padStart(2,"0")+"</td><td>"+escHtml(l.name)+
+      "</td><td>"+(l.kind==="text"?"texte":"symbole")+"</td><td class='n'>"+countOf(l)+
+      "</td><td class='n'>"+totalOf(l)+"</td>";
+    tb.appendChild(tr);
+  });
+  if(!legends.length)
+    tb.innerHTML="<tr><td colspan='5' style='color:var(--muted)'>Aucun repère.</td></tr>";
+}
+
+/* ---------------------------------------------------------------------------
+   9. Interactions sur la scène
+--------------------------------------------------------------------------- */
+var ptrs=new Map(), pinch=null;
+
+function localXY(ev){
+  var r=$("view").getBoundingClientRect();
+  return [ev.clientX-r.left, ev.clientY-r.top];
+}
+function addManual(sx,sy){
+  var l=selected();
+  if(!l){ tip("Aucun repère sélectionné","Choisissez une ligne de la nomenclature avant d'ajouter un point."); return; }
+  legendRes(l).manual.push({x:sx,y:sy});
+  invalidate(l); renderNomen(); syncTune(); redraw();
+}
+function removeNear(sx,sy){
+  var l=selected();
+  if(!l) return;
+  var r=legendRes(l), pts=points(l), best=-1, bd=1e9;
+  for(var i=0;i<pts.length;i++){
+    var d=Math.hypot(pts[i].x-sx,pts[i].y-sy);
+    if(d<bd){ bd=d; best=i; }
+  }
+  var tolS=Math.max(14,Math.max(r.tw||14,r.th||14)*0.8);
+  if(best<0||bd>tolS){ setStatus("Aucune occurrence à cet endroit.",false); return; }
+  var p=pts[best];
+  if(p.man){
+    for(var j=0;j<r.manual.length;j++)
+      if(Math.abs(r.manual[j].x-p.x)<1 && Math.abs(r.manual[j].y-p.y)<1){ r.manual.splice(j,1); break; }
+  } else r.rejected.push({x:p.x,y:p.y});
+  invalidate(l); renderNomen(); syncTune(); redraw();
+}
+
+function initStage(){
+  var cv=$("view");
+
+  cv.addEventListener("pointerdown",function(ev){
+    cv.setPointerCapture(ev.pointerId);
+    ptrs.set(ev.pointerId,localXY(ev));
+    if(ptrs.size===2){
+      var it=Array.from(ptrs.values());
+      pinch={d:Math.hypot(it[0][0]-it[1][0],it[0][1]-it[1][1]),
+             c:[(it[0][0]+it[1][0])/2,(it[0][1]+it[1][1])/2]};
+      drag=null; pickRect=null; redraw();
+      return;
+    }
+    if(!src.w) return;
+    var p=localXY(ev), s=v2s(p[0],p[1]);
+    if(tool==="add"){ addManual(s[0],s[1]); return; }
+    if(tool==="rm"){ removeNear(s[0],s[1]); return; }
+    if(tool==="pick"||ev.shiftKey){
+      drag={mode:"rect",x0:s[0],y0:s[1]};
+      pickRect={x:s[0],y:s[1],w:0,h:0};
+    } else {
+      drag={mode:"pan",px:p[0],py:p[1]};
+      cv.classList.add("panning");
+    }
+  });
+
+  cv.addEventListener("pointermove",function(ev){
+    var p=localXY(ev);
+    if(ptrs.has(ev.pointerId)) ptrs.set(ev.pointerId,p);
+    if(src.w){
+      var s=v2s(p[0],p[1]);
+      if(s[0]>=0&&s[1]>=0&&s[0]<src.w&&s[1]<src.h){
+        var mm=src.mmPerPx||0;
+        $("st-pos").textContent=Math.round(s[0]*mm)+" ; "+Math.round((src.h-s[1])*mm)+" mm";
+      } else $("st-pos").textContent="—";
+    }
+    if(pinch && ptrs.size===2){
+      var it=Array.from(ptrs.values());
+      var d=Math.hypot(it[0][0]-it[1][0],it[0][1]-it[1][1]);
+      var c=[(it[0][0]+it[1][0])/2,(it[0][1]+it[1][1])/2];
+      if(pinch.d>4){
+        view.tx+=c[0]-pinch.c[0]; view.ty+=c[1]-pinch.c[1];
+        zoomAt(c[0],c[1],d/pinch.d);
+      }
+      pinch={d:d,c:c};
+      return;
+    }
+    if(!drag) return;
+    if(drag.mode==="pan"){
+      view.tx+=p[0]-drag.px; view.ty+=p[1]-drag.py;
+      drag.px=p[0]; drag.py=p[1]; redraw();
+    } else {
+      var s2=v2s(p[0],p[1]);
+      pickRect={x:Math.min(drag.x0,s2[0]),y:Math.min(drag.y0,s2[1]),
+                w:Math.abs(s2[0]-drag.x0),h:Math.abs(s2[1]-drag.y0)};
+      redraw();
+    }
+  });
+
+  function endPtr(ev){
+    ptrs.delete(ev.pointerId);
+    if(ptrs.size<2) pinch=null;
+    cv.classList.remove("panning");
+    if(!drag) return;
+    var d=drag; drag=null;
+    if(d.mode==="rect" && pickRect){
+      var rc=pickRect; pickRect=null;
+      if(rc.w>=3 && rc.h>=3){
+        var l=newLegendFromRect(rc,null,null);
+        if(l) askName(l); else redraw();
+      } else redraw();
+    } else redraw();
+  }
+  cv.addEventListener("pointerup",endPtr);
+  cv.addEventListener("pointercancel",endPtr);
+
+  cv.addEventListener("wheel",function(ev){
+    if(!src.w) return;
+    ev.preventDefault();
+    var p=localXY(ev);
+    var f=Math.pow(0.9992, ev.deltaMode===1?ev.deltaY*16:ev.deltaY);
+    zoomAt(p[0],p[1],clamp(f,0.3,3));
+  },{passive:false});
+
+  cv.addEventListener("dblclick",function(ev){
+    if(!src.w) return;
+    var p=localXY(ev);
+    if(Math.abs(view.k-1)<0.02) fitView(); else { view.k=1; var s=v2s(p[0],p[1]); view.k=1;
+      view.tx=p[0]-s[0]; view.ty=p[1]-s[1]; }
+    redraw();
+  });
+
+  window.addEventListener("resize",function(){ redraw(); });
+
+  var st=$("stage");
+  ["dragenter","dragover"].forEach(function(t){
+    st.addEventListener(t,function(e){ e.preventDefault(); $("drop").hidden=false; });
+  });
+  $("drop").addEventListener("dragleave",function(e){
+    if(e.target===$("drop") && (pdfDoc||src.demo)) $("drop").hidden=true;
+  });
+  $("drop").addEventListener("drop",function(e){
+    e.preventDefault(); $("drop").hidden=true;
+    var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(f) openFile(f);
+  });
+  $("drop").addEventListener("click",function(e){
+    if(e.target===$("drop")||e.target.id==="drop-btn") $("file-pdf").click();
+  });
+
+  document.addEventListener("keydown",function(ev){
+    if(/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+    var k=ev.key.toLowerCase();
+    if(k==="escape"){ setTool("nav"); pickRect=null; closeModal(); redraw(); }
+    else if(k==="f"){ fitView(); redraw(); }
+    else if(k==="s"){ setTool(tool==="pick"?"nav":"pick"); }
+    else if(k==="a"){ setTool(tool==="add"?"nav":"add"); }
+    else if(k==="r"){ setTool(tool==="rm"?"nav":"rm"); }
+    else if(k==="arrowleft"&&pdfDoc){ renderPage(pageNum-1); }
+    else if(k==="arrowright"&&pdfDoc){ renderPage(pageNum+1); }
+    else return;
+    ev.preventDefault();
+  });
+}
+
+/* nommer le repère qui vient d'être créé */
+function askName(l){
+  modal({
+    title:"Nouveau repère",
+    body:'<p>Symbole retenu : <b>'+l.tpl.w+'×'+l.tpl.h+' px</b>. Donnez-lui sa désignation de nomenclature.</p>'+
+         '<img src="'+l.thumb+'" alt="" style="width:90px;height:72px;border:1px solid var(--rule);'+
+         'border-radius:3px;background:#fff;object-fit:contain;align-self:center">'+
+         '<input type="text" id="m-name" value="" placeholder="ex. Prise 2P+T 16 A" autocomplete="off">',
+    actions:[
+      {label:"Annuler",fn:function(){ legends.pop(); nextRep--; selId=null; renderNomen(); syncTune(); redraw(); }},
+      {label:"Compter",primary:true,fn:function(){
+        var v=($("m-name")&&$("m-name").value||"").trim();
+        l.name=v||("Repère "+String(l.rep).padStart(2,"0"));
+        renderNomen(); setTool("nav"); runLegend(l);
+      }}
+    ],
+    focus:"m-name"
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   10. Modale
+--------------------------------------------------------------------------- */
+var modalEl=null;
+function modal(o){
+  closeModal();
+  var d=document.createElement("div");
+  d.className="modal";
+  d.innerHTML='<div class="modal-in"><h2>'+escHtml(o.title)+'</h2>'+o.body+
+    '<div class="modal-foot"></div></div>';
+  var foot=d.querySelector(".modal-foot");
+  (o.actions||[{label:"Fermer"}]).forEach(function(a){
+    var b=document.createElement("button");
+    b.className="btn"+(a.primary?" primary":"");
+    b.textContent=a.label;
+    b.addEventListener("click",function(){ var f=a.fn; closeModal(); if(f) f(); });
+    foot.appendChild(b);
+  });
+  d.addEventListener("click",function(e){ if(e.target===d) closeModal(); });
+  document.body.appendChild(d);
+  modalEl=d;
+  var fc=o.focus&&$(o.focus);
+  if(fc){ fc.focus(); fc.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ e.preventDefault(); var btns=foot.querySelectorAll("button");
+      btns[btns.length-1].click(); } }); }
+  return d;
+}
+function closeModal(){ if(modalEl){ modalEl.remove(); modalEl=null; } }
+
+/* ---------------------------------------------------------------------------
+   11. Mode texte
+--------------------------------------------------------------------------- */
+function buildInventory(){
+  var box=$("t-chips");
+  box.innerHTML="";
+  if(!src.text.length){
+    box.innerHTML='<div class="empty-list">'+(src.demo
+      ? "Le plan de démonstration est une image : pas de couche texte. Ouvrez un PDF vectoriel pour en profiter."
+      : "Aucun texte dans ce folio — le PDF est probablement un scan. Utilisez l'onglet Symboles.")+'</div>';
+    return;
+  }
+  var freq=new Map();
+  for(var i=0;i<src.text.length;i++){
+    var toks=src.text[i].n.split(/[\s]+/);
+    for(var j=0;j<toks.length;j++){
+      var t=toks[j].replace(/^[^A-Z0-9+/.]+|[^A-Z0-9+/.]+$/g,"");
+      if(t.length<1||t.length>16) continue;
+      freq.set(t,(freq.get(t)||0)+1);
+    }
+  }
+  var arr=Array.from(freq.entries()).sort(function(a,b){ return b[1]-a[1]||a[0].localeCompare(b[0]); });
+  arr=arr.slice(0,80);
+  if(!arr.length){ box.innerHTML='<div class="empty-list">Aucun libellé exploitable.</div>'; return; }
+  arr.forEach(function(e){
+    var b=document.createElement("button");
+    b.className="chip";
+    b.innerHTML='<s>'+escHtml(e[0])+'</s><b>'+e[1]+'</b>';
+    b.title="Créer un repère pour « "+e[0]+" »";
+    b.addEventListener("click",function(){ newTextLegend(e[0],true,false); });
+    box.appendChild(b);
+  });
+}
+function findAll(hay,needle,word){
+  var out=[], i=0;
+  if(!needle) return out;
+  while(true){
+    var k=hay.indexOf(needle,i);
+    if(k<0) break;
+    if(!word || (!/[A-Z0-9]/.test(hay.charAt(k-1)||"") &&
+                 !/[A-Z0-9]/.test(hay.charAt(k+needle.length)||"")))
+      out.push(k);
+    i=k+1;
+  }
+  return out;
+}
+function countText(l){
+  var r=legendRes(l);
+  r.cands=[]; r.pts=null; l.err=null;
+  var needle=l.needle||"", re=null;
+  if(l.opts.regex){
+    try{ re=new RegExp(needle,"gi"); }
+    catch(e){ l.err="Expression régulière invalide"; renderNomen(); syncTune(); return; }
+  }
+  var nn=normTxt(needle);
+  for(var i=0;i<src.text.length;i++){
+    var it=src.text[i], idx=[];
+    if(re){ re.lastIndex=0; var m; while((m=re.exec(it.s))!==null){ idx.push([m.index,m[0].length]);
+      if(m.index===re.lastIndex) re.lastIndex++; } }
+    else findAll(it.n,nn,l.opts.word).forEach(function(k){ idx.push([k,nn.length]); });
+    for(var j=0;j<idx.length;j++){
+      var len=Math.max(1,it.s.length);
+      var mid=(idx[j][0]+idx[j][1]/2)/len;
+      var px=it.x+mid*(it.w||0), py=it.y-(it.h||8)*0.35;
+      r.cands.push({x:px-7,y:py-7,w:14,h:14,rec:1,pre:1,rot:0,mir:0,scl:1,txt:it.s});
+    }
+  }
+  r.tw=14; r.th=14;
+  renderNomen(); syncTune(); redraw(); refreshFields();
+  setStatus("« "+(l.needle||"")+" » — "+countOf(l)+" occurrence(s) sur le folio "+pageNum,false);
+}
+function newTextLegend(needle,word,regex,name){
+  needle=(needle||"").trim();
+  if(!needle) return null;
+  var l={
+    id:"T"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    rep:nextRep++, kind:"text",
+    name:name||needle, needle:needle,
+    color:PALETTE[legends.length%PALETTE.length],
+    opts:{word:!!word,regex:!!regex},
+    thr:0.5, pen:0, nms:0.9, visible:true, res:{}, tpl:null, thumb:null, err:null
+  };
+  legends.push(l); selId=l.id;
+  countText(l); renderNomen(); syncTune();
+  return l;
+}
+
+/* ---------------------------------------------------------------------------
+   12. Coordonnées et export
+--------------------------------------------------------------------------- */
+var SANDBOXED=(function(){ try{ return window.self!==window.top; }catch(e){ return true; } })();
+
+function toMm(x,y){
+  if(src.viewport && src.pageObj){
+    var p=src.viewport.convertToPdfPoint(x,y), v=src.pageObj.view;
+    return [(p[0]-v[0])*PT2MM,(p[1]-v[1])*PT2MM];
+  }
+  var k=src.mmPerPx||1;
+  return [x*k,(src.h-y)*k];
+}
+function fx(n){ return (Math.round(n*1000)/1000).toString(); }
+function sizeOf(bytes){
+  return bytes<1048576 ? nf(Math.round(bytes/1024))+" ko"
+                       : (Math.round(bytes/1048576*10)/10).toString().replace(".",",")+" Mo";
+}
+
+function saveFile(name,text,mime){
+  var ok=false;
+  try{
+    var blob=new Blob([text],{type:mime||"text/plain;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url; a.download=name; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },8000);
+    ok=true;
+  }catch(e){ ok=false; }
+  var kb=Math.round((text.length||0)/1024);
+  setStatus((ok?"Fichier généré : ":"Génération : ")+name+" ("+sizeOf(text.length||0)+")",false);
+  if(SANDBOXED){
+    if(text.length<300000){
+      modal({title:"Fichier prêt — "+name,
+        body:'<p>Le téléchargement a été lancé. Les visionneuses intégrées le bloquent parfois : '+
+             'dans ce cas, copiez le contenu ci-dessous et collez-le dans un fichier nommé '+
+             '<b>'+escHtml(name)+'</b>.</p><textarea id="m-out" spellcheck="false"></textarea>',
+        actions:[{label:"Copier",fn:function(){}},{label:"Fermer",primary:true}]});
+      var ta=$("m-out");
+      if(ta){ ta.value=text; ta.select(); }
+      var btns=modalEl.querySelectorAll(".modal-foot button");
+      btns[0].addEventListener("click",function(ev){
+        ev.stopPropagation();
+        var t=$("m-out"); if(!t) return;
+        t.select();
+        if(navigator.clipboard&&navigator.clipboard.writeText)
+          navigator.clipboard.writeText(text).then(function(){ btns[0].textContent="Copié"; },
+            function(){ btns[0].textContent="Sélectionné — Ctrl+C"; });
+        else btns[0].textContent="Sélectionné — Ctrl+C";
+      },true);
+    } else {
+      modal({title:"Fichier volumineux",
+        body:'<p>'+escHtml(name)+' pèse '+nf(kb)+' ko. Le téléchargement a été lancé ; '+
+             "s'il est bloqué par la visionneuse, utilisez la version téléchargeable de l'outil "+
+             "(fichier HTML autonome), où l'enregistrement fonctionne toujours.</p>"});
+    }
+  }
+  return ok;
+}
+
+/* ---------- CSV ---------- */
+function csvCell(v){
+  var s=String(v==null?"":v);
+  return /[;"\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function csvOf(rows){
+  return "﻿"+rows.map(function(r){ return r.map(csvCell).join(";"); }).join("\r\n")+"\r\n";
+}
+function exportCsvSummary(){
+  var rows=[["Document",pdfName],["Folio",pageNum+" / "+pageCount],
+            ["Résolution d'analyse",src.w+"x"+src.h+" px"],
+            ["Édité le",new Date().toLocaleString("fr-FR")],[]];
+  rows.push(["Repère","Désignation","Mode","Détail","Qté folio","Qté document"]);
+  var tp=0,td=0;
+  legends.forEach(function(l){
+    var a=countOf(l), b=totalOf(l); tp+=a; td+=b;
+    rows.push([String(l.rep).padStart(2,"0"),l.name,l.kind==="text"?"texte":"symbole",
+               l.kind==="text"?l.needle:(l.tpl.w+"x"+l.tpl.h+" px, seuil "+l.thr.toFixed(2)),a,b]);
+  });
+  rows.push([]); rows.push(["","TOTAL","","",tp,td]);
+  saveFile(baseName()+"-synthese.csv",csvOf(rows),"text/csv;charset=utf-8");
+}
+function exportCsvDetail(){
+  var rows=[["Repère","Désignation","Folio","N°","X (mm)","Y (mm)","Score","Origine"]];
+  var save=pageNum;
+  legends.forEach(function(l){
+    Object.keys(l.res).sort(function(a,b){ return a-b; }).forEach(function(k){
+      pageNum=parseInt(k,10);
+      var pts=points(l);
+      for(var i=0;i<pts.length;i++){
+        var mm=toMm(pts[i].x,pts[i].y);
+        rows.push([String(l.rep).padStart(2,"0"),l.name,k,i+1,
+          fx(mm[0]).replace(".",","),fx(mm[1]).replace(".",","),
+          pts[i].man?"":pts[i].s.toFixed(3).replace(".",","),
+          pts[i].man?"manuel":"auto"]);
+      }
+    });
+  });
+  pageNum=save;
+  saveFile(baseName()+"-detail.csv",csvOf(rows),"text/csv;charset=utf-8");
+}
+function baseName(){
+  var n=(pdfName||"plan").replace(/\.pdf$/i,"").replace(/[^A-Za-z0-9ÀÂÄÉÈÊËÎÏÔÖÙÛÜÇàâäéèêëîïôöùûüç _-]+/g,"_");
+  return n.slice(0,40)+"-folio"+pageNum;
+}
+
+/* ---------- DXF ---------- */
+function dxfLayerName(s,fallback){
+  var n=String(s||fallback||"CALQUE").toUpperCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g,"")
+        .replace(/[^A-Z0-9_\-]+/g,"_").replace(/^_+|_+$/g,"");
+  return (n||fallback||"CALQUE").slice(0,31);
+}
+var ACI=[1,5,3,30,200,4,6,60,170,34];
+function dxfDoc(layers,ents,extmax){
+  var o=["0","SECTION","2","HEADER","9","$ACADVER","1","AC1009",
+    "9","$EXTMIN","10","0.0","20","0.0","30","0.0",
+    "9","$EXTMAX","10",fx(extmax[0]),"20",fx(extmax[1]),"30","0.0",
+    "0","ENDSEC",
+    "0","SECTION","2","TABLES","0","TABLE","2","LAYER","70",String(layers.length+1),
+    "0","LAYER","2","0","70","0","62","7","6","CONTINUOUS"];
+  layers.forEach(function(L){
+    o.push("0","LAYER","2",L.name,"70","0","62",String(L.aci),"6","CONTINUOUS");
+  });
+  o.push("0","ENDTAB","0","ENDSEC","0","SECTION","2","ENTITIES");
+  o=o.concat(ents);
+  o.push("0","ENDSEC","0","EOF");
+  return o.join("\r\n")+"\r\n";
+}
+function dxfText(ents,layer,x,y,h,str,rot){
+  var s=String(str).replace(/[^\x20-\x7E]/g,function(c){
+    return "\\U+"+c.charCodeAt(0).toString(16).toUpperCase().padStart(4,"0");
+  });
+  ents.push("0","TEXT","8",layer,"10",fx(x),"20",fx(y),"30","0","40",fx(h),"1",s);
+  if(rot) ents.push("50",fx(rot));
+}
+function exportDxfPoints(){
+  if(!legends.length){ tip("Rien à exporter","Créez au moins un repère."); return; }
+  var ents=[], layers=[], withTxt=$("x-dxf-txt").checked;
+  var ex=toMm(src.w,0);
+  legends.forEach(function(l,i){
+    var lay=dxfLayerName(String(l.rep).padStart(2,"0")+"_"+l.name,"REPERE_"+l.rep);
+    layers.push({name:lay,aci:ACI[i%ACI.length]});
+    var pts=points(l);
+    for(var j=0;j<pts.length;j++){
+      var mm=toMm(pts[j].x,pts[j].y), x=mm[0], y=mm[1];
+      ents.push("0","CIRCLE","8",lay,"10",fx(x),"20",fx(y),"30","0","40","1.6");
+      ents.push("0","LINE","8",lay,"10",fx(x-2.6),"20",fx(y),"30","0","11",fx(x+2.6),"21",fx(y),"31","0");
+      ents.push("0","LINE","8",lay,"10",fx(x),"20",fx(y-2.6),"30","0","11",fx(x),"21",fx(y+2.6),"31","0");
+      ents.push("0","POINT","8",lay,"10",fx(x),"20",fx(y),"30","0");
+      if(withTxt) dxfText(ents,lay,x+3.2,y+1.2,2.2,String(l.rep).padStart(2,"0")+"."+(j+1),0);
+    }
+  });
+  saveFile(baseName()+"-reperes.dxf",dxfDoc(layers,ents,[Math.abs(ex[0])||1189,Math.abs(toMm(0,0)[1])||841]),
+    "application/dxf");
+}
+
+/* vectorisation du PDF : liste d'opérateurs -> lignes, polylignes, textes */
+async function exportDxfGeometry(){
+  if(!src.pageObj){
+    tip("Plan de démonstration","La vectorisation lit la géométrie du PDF. Ouvrez un vrai plan pour l'utiliser.");
+    return;
+  }
+  setStatus("Vectorisation du folio "+pageNum+"…",true); setProg(0.05);
+  try{
+    var lib=await window.__pdfReady, OPS=lib.OPS;
+    var page=src.pageObj;
+    var opl=await page.getOperatorList();
+    setProg(0.4);
+    var v=page.view, ox=v[0], oy=v[1], K=PT2MM;
+    var ctm=[1,0,0,1,0,0], stack=[];
+    function mul(m,n){
+      return [m[0]*n[0]+m[1]*n[2], m[0]*n[1]+m[1]*n[3],
+              m[2]*n[0]+m[3]*n[2], m[2]*n[1]+m[3]*n[3],
+              m[4]*n[0]+m[5]*n[2]+n[4], m[4]*n[1]+m[5]*n[3]+n[5]];
+    }
+    function ap(x,y){
+      return [(ctm[0]*x+ctm[2]*y+ctm[4]-ox)*K, (ctm[1]*x+ctm[3]*y+ctm[5]-oy)*K];
+    }
+    var ents=[], sub=null, subs=[], nEnt=0, nSeg=0, truncated=false;
+    var LG="PDF_GEOM", LF="PDF_FILL", LT="PDF_TEXT";
+    function flush(layer){
+      for(var i=0;i<subs.length;i++){
+        var pl=subs[i];
+        if(pl.length<2) continue;
+        if(nSeg>900000){ truncated=true; break; }
+        if(pl.length===2){
+          ents.push("0","LINE","8",layer,"10",fx(pl[0][0]),"20",fx(pl[0][1]),"30","0",
+                    "11",fx(pl[1][0]),"21",fx(pl[1][1]),"31","0");
+          nSeg++;
+        } else {
+          ents.push("0","POLYLINE","8",layer,"66","1","70",pl.closed?"1":"0",
+                    "10","0","20","0","30","0");
+          for(var j=0;j<pl.length;j++){
+            ents.push("0","VERTEX","8",layer,"10",fx(pl[j][0]),"20",fx(pl[j][1]),"30","0");
+            nSeg++;
+          }
+          ents.push("0","SEQEND","8",layer);
+        }
+        nEnt++;
+      }
+      subs=[]; sub=null;
+    }
+    function bez(p0,p1,p2,p3){
+      var len=Math.hypot(p1[0]-p0[0],p1[1]-p0[1])+Math.hypot(p2[0]-p1[0],p2[1]-p1[1])
+             +Math.hypot(p3[0]-p2[0],p3[1]-p2[1]);
+      var n=clamp(Math.ceil(len/0.45),2,26);
+      for(var i=1;i<=n;i++){
+        var t=i/n, u=1-t;
+        sub.push([u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],
+                  u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]]);
+      }
+    }
+    var fns=opl.fnArray, args=opl.argsArray;
+    for(var i=0;i<fns.length;i++){
+      var fn=fns[i], a=args[i];
+      if(fn===OPS.save){ stack.push(ctm.slice()); }
+      else if(fn===OPS.restore){ if(stack.length) ctm=stack.pop(); }
+      else if(fn===OPS.transform){ ctm=mul(a,ctm); }
+      else if(fn===OPS.paintFormXObjectBegin){ stack.push(ctm.slice()); if(a&&a[0]) ctm=mul(a[0],ctm); }
+      else if(fn===OPS.paintFormXObjectEnd){ if(stack.length) ctm=stack.pop(); }
+      else if(fn===OPS.constructPath){
+        var ops=a[0], co=a[1], ci=0, cur=[0,0];
+        subs=[]; sub=null;
+        for(var k=0;k<ops.length;k++){
+          var op=ops[k];
+          if(op===OPS.moveTo){ cur=[co[ci],co[ci+1]]; ci+=2; sub=[ap(cur[0],cur[1])]; sub.closed=false; subs.push(sub); }
+          else if(op===OPS.lineTo){ cur=[co[ci],co[ci+1]]; ci+=2;
+            if(!sub){ sub=[ap(cur[0],cur[1])]; sub.closed=false; subs.push(sub); }
+            else sub.push(ap(cur[0],cur[1])); }
+          else if(op===OPS.curveTo){
+            var c1=[co[ci],co[ci+1]], c2=[co[ci+2],co[ci+3]], e=[co[ci+4],co[ci+5]]; ci+=6;
+            if(!sub){ sub=[ap(cur[0],cur[1])]; sub.closed=false; subs.push(sub); }
+            bez(ap(cur[0],cur[1]),ap(c1[0],c1[1]),ap(c2[0],c2[1]),ap(e[0],e[1])); cur=e; }
+          else if(op===OPS.curveTo2){
+            var d1=[co[ci],co[ci+1]], d2=[co[ci+2],co[ci+3]]; ci+=4;
+            if(!sub){ sub=[ap(cur[0],cur[1])]; sub.closed=false; subs.push(sub); }
+            bez(ap(cur[0],cur[1]),ap(cur[0],cur[1]),ap(d1[0],d1[1]),ap(d2[0],d2[1])); cur=d2; }
+          else if(op===OPS.curveTo3){
+            var e1=[co[ci],co[ci+1]], e2=[co[ci+2],co[ci+3]]; ci+=4;
+            if(!sub){ sub=[ap(cur[0],cur[1])]; sub.closed=false; subs.push(sub); }
+            bez(ap(cur[0],cur[1]),ap(e1[0],e1[1]),ap(e2[0],e2[1]),ap(e2[0],e2[1])); cur=e2; }
+          else if(op===OPS.closePath){ if(sub){ sub.closed=true; } }
+          else if(op===OPS.rectangle){
+            var rx=co[ci], ry=co[ci+1], rw=co[ci+2], rh=co[ci+3]; ci+=4;
+            var q=[ap(rx,ry),ap(rx+rw,ry),ap(rx+rw,ry+rh),ap(rx,ry+rh)];
+            q.closed=true; subs.push(q); sub=q; cur=[rx,ry];
+          }
+        }
+      }
+      else if(fn===OPS.stroke||fn===OPS.closeStroke){ flush(LG); }
+      else if(fn===OPS.fill||fn===OPS.eoFill){ flush(LF); }
+      else if(fn===OPS.fillStroke||fn===OPS.eoFillStroke||
+              fn===OPS.closeFillStroke||fn===OPS.closeEOFillStroke){ flush(LG); }
+      else if(fn===OPS.endPath){ subs=[]; sub=null; }   /* chemin de détourage : ignoré */
+      if((i&8191)===0) setProg(0.4+0.4*i/fns.length);
+      if(truncated) break;
+    }
+    setProg(0.85);
+    var nTxt=0;
+    if($("x-dxf-txt").checked){
+      var tc=await page.getTextContent({disableCombineTextItems:false});
+      for(var t2=0;t2<tc.items.length;t2++){
+        var it=tc.items[t2];
+        if(!it.str||!it.str.trim()) continue;
+        var tr=it.transform;
+        var hgt=(it.height||Math.hypot(tr[2],tr[3])||8)*K;
+        var rot=Math.atan2(tr[1],tr[0])*180/Math.PI;
+        dxfText(ents,LT,(tr[4]-ox)*K,(tr[5]-oy)*K,Math.max(0.6,hgt),it.str,Math.abs(rot)>0.3?rot:0);
+        nTxt++;
+      }
+    }
+    var layers=[{name:LG,aci:7},{name:LF,aci:8},{name:LT,aci:4}];
+    var ex=[(v[2]-v[0])*K,(v[3]-v[1])*K];
+    var out=dxfDoc(layers,ents,ex);
+    setProg(0);
+    saveFile(baseName()+"-vectorise.dxf",out,"application/dxf");
+    tip(truncated?"Vectorisation tronquée":"Vectorisation terminée",
+      nEnt+" entités, "+nTxt+" textes, "+sizeOf(out.length)+". "+
+      (truncated?"Le folio dépasse la limite de 900 000 sommets : la fin a été coupée. ":"")+
+      "Unités : millimètres. Ouvrez le DXF dans AutoCAD puis enregistrez en DWG.");
+  }catch(err){
+    setProg(0);
+    setStatus("Vectorisation impossible : "+(err&&err.message||err),false);
+    tip("Vectorisation impossible",String(err&&err.message||err));
+  }
+}
+
+/* ---------- PNG ---------- */
+function exportPng(){
+  if(!src.canvas) return;
+  var cv=document.createElement("canvas");
+  cv.width=src.w; cv.height=src.h;
+  var g=cv.getContext("2d");
+  g.drawImage(src.canvas,0,0);
+  legends.forEach(function(l){
+    if(!l.visible) return;
+    var pts=points(l), r=legendRes(l);
+    g.strokeStyle=l.color; g.lineWidth=Math.max(1.5,src.w/1400);
+    g.fillStyle=hexA(l.color,0.14);
+    for(var i=0;i<pts.length;i++){
+      var w=r.tw||16, h=r.th||16;
+      g.beginPath(); g.rect(pts[i].x-w/2,pts[i].y-h/2,w,h); g.fill(); g.stroke();
+    }
+  });
+  cv.toBlob(function(b){
+    if(!b){ setStatus("Export PNG impossible.",false); return; }
+    try{
+      var url=URL.createObjectURL(b), a=document.createElement("a");
+      a.href=url; a.download=baseName()+"-annote.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); },8000);
+      setStatus("PNG annoté généré ("+nf(Math.round(b.size/1024))+" ko)",false);
+      if(SANDBOXED) tip("PNG généré","Si le téléchargement a été bloqué par la visionneuse, utilisez la version téléchargeable de l'outil.");
+    }catch(e){ setStatus("Export PNG bloqué par le navigateur.",false); }
+  },"image/png");
+}
+
+/* ---------- projet ---------- */
+function b64FromMask(m){
+  var s="", CH=8192;
+  for(var i=0;i<m.length;i+=CH)
+    s+=String.fromCharCode.apply(null,m.subarray(i,i+CH));
+  return btoa(s);
+}
+function maskFromB64(b,w,h){
+  var raw=atob(b), m=new Uint8Array(w*h);
+  for(var i=0;i<m.length&&i<raw.length;i++) m[i]=raw.charCodeAt(i)?1:0;
+  return m;
+}
+function exportProject(){
+  var o={format:"compteur-cfo-cfa/1", document:pdfName, folio:pageNum,
+         date:new Date().toISOString(), nextRep:nextRep, legends:[]};
+  legends.forEach(function(l){
+    var e={id:l.id,rep:l.rep,kind:l.kind,name:l.name,color:l.color,visible:l.visible,
+           thr:l.thr,pen:l.pen,nms:l.nms,rot:l.rot,mir:l.mir,scaleMode:l.scaleMode,
+           needle:l.needle||null,opts:l.opts||null,thumb:l.thumb||null,res:{}};
+    if(l.tpl) e.tpl={w:l.tpl.w,h:l.tpl.h,mask:b64FromMask(l.tpl.mask)};
+    for(var k in l.res)
+      e.res[k]={manual:l.res[k].manual,rejected:l.res[k].rejected};
+    o.legends.push(e);
+  });
+  saveFile(baseName()+".cfo.json",JSON.stringify(o,null,1),"application/json");
+}
+async function importProject(file){
+  try{
+    var txt=await file.text(), o=JSON.parse(txt);
+    if(!o||!o.legends) throw new Error("Fichier de projet non reconnu");
+    legends=[]; nextRep=o.nextRep||1;
+    o.legends.forEach(function(e){
+      var l={id:e.id||("L"+Math.random().toString(36).slice(2)),rep:e.rep||nextRep++,
+             kind:e.kind||"symbol",name:e.name||"Repère",color:e.color||PALETTE[0],
+             visible:e.visible!==false,thr:e.thr!=null?e.thr:0.8,pen:e.pen!=null?e.pen:0.35,
+             nms:e.nms!=null?e.nms:0.6,rot:!!e.rot,mir:!!e.mir,scaleMode:e.scaleMode||"1",
+             needle:e.needle||null,opts:e.opts||{word:true,regex:false},
+             thumb:e.thumb||null,tpl:null,res:{},err:null,lastMs:0};
+      if(e.tpl) l.tpl={w:e.tpl.w,h:e.tpl.h,mask:maskFromB64(e.tpl.mask,e.tpl.w,e.tpl.h)};
+      var r=legendRes(l);
+      var cur=e.res&&e.res[String(pageNum)];
+      if(cur){ r.manual=cur.manual||[]; r.rejected=cur.rejected||[]; }
+      legends.push(l);
+    });
+    selId=legends.length?legends[0].id:null;
+    renderNomen(); syncTune();
+    setStatus("Projet chargé : "+legends.length+" repère(s). Détection en cours…",true);
+    await recountAll();
+    setStatus("Projet appliqué au folio "+pageNum+".",false);
+  }catch(err){
+    tip("Projet illisible",String(err&&err.message||err));
+  }
+}
+
+/* ---------- multi-folios ---------- */
+async function countAllPages(){
+  if(!pdfDoc){ tip("Document absent","Ouvrez un PDF pour compter sur plusieurs folios."); return; }
+  if(!legends.length){ tip("Aucun repère","Créez au moins un repère avant de lancer le comptage global."); return; }
+  var start=pageNum;
+  $("btn-allpages").disabled=true;
+  for(var n=1;n<=pageCount;n++){
+    setStatus("Folio "+n+" / "+pageCount+"…",true);
+    setProg((n-1)/pageCount);
+    await renderPage(n);
+  }
+  await renderPage(start);
+  $("btn-allpages").disabled=false;
+  setProg(0);
+  var t=0; legends.forEach(function(l){ t+=totalOf(l); });
+  setStatus("Comptage terminé : "+nf(t)+" occurrences sur "+pageCount+" folios.",false);
+  tip("Comptage global terminé",nf(t)+" occurrences cumulées. Le détail par folio est dans l'onglet Export.");
+}
+
+/* ---------------------------------------------------------------------------
+   13. pdf.js : mise en route
+   Le bloc injecté plus haut expose soit __PDFJS_WORKER_TEXT (build autonome),
+   soit __PDFJS_WORKER_SRC (fichiers séparés). Si la création du worker échoue
+   — pages file:// sur certains navigateurs — pdf.js bascule tout seul sur son
+   worker de secours, exécuté sur le thread principal.
+--------------------------------------------------------------------------- */
+window.__pdfReady=new Promise(function(resolve,reject){
+  var lib=window.pdfjsLib;
+  if(!lib){ reject(new Error("La bibliothèque pdf.js n'a pas pu être chargée.")); return; }
+  try{
+    if(window.__PDFJS_WORKER_TEXT){
+      lib.GlobalWorkerOptions.workerSrc=
+        URL.createObjectURL(new Blob([window.__PDFJS_WORKER_TEXT],{type:"text/javascript"}));
+      try{ delete window.__PDFJS_WORKER_TEXT; }catch(e){ window.__PDFJS_WORKER_TEXT=null; }
+    } else if(window.__PDFJS_WORKER_SRC){
+      lib.GlobalWorkerOptions.workerSrc=window.__PDFJS_WORKER_SRC;
+    }
+  }catch(e){}
+  resolve(lib);
+});
+
+/* ---------------------------------------------------------------------------
+   14. Démarrage et câblage de l'interface
+--------------------------------------------------------------------------- */
+function initUI(){
+  /* thème */
+  var saved=null;
+  try{ saved=localStorage.getItem("cfo-theme"); }catch(e){}
+  if(saved==="dark"||saved==="light") document.documentElement.setAttribute("data-theme",saved);
+  $("btn-theme").addEventListener("click",function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    var isDark = cur==="dark" || (!cur && matchMedia("(prefers-color-scheme: dark)").matches);
+    var next=isDark?"light":"dark";
+    document.documentElement.setAttribute("data-theme",next);
+    try{ localStorage.setItem("cfo-theme",next); }catch(e){}
+    inkCanvas=null; redraw();
+  });
+
+  /* onglets */
+  var tabs=[["tab-sym","p-sym"],["tab-txt","p-txt"],["tab-exp","p-exp"],["tab-aide","p-aide"]];
+  tabs.forEach(function(t){
+    $(t[0]).addEventListener("click",function(){
+      tabs.forEach(function(u){
+        var on=u[0]===t[0];
+        $(u[0]).setAttribute("aria-selected",on?"true":"false");
+        $(u[1]).hidden=!on;
+      });
+      if(t[0]==="tab-exp") renderRecap();
+    });
+  });
+
+  /* ouverture */
+  $("btn-open").addEventListener("click",function(){ $("file-pdf").click(); });
+  $("file-pdf").addEventListener("change",function(e){
+    var f=e.target.files&&e.target.files[0];
+    e.target.value="";
+    if(f) openFile(f);
+  });
+  $("x-load").addEventListener("click",function(){ $("file-prj").click(); });
+  $("file-prj").addEventListener("change",function(e){
+    var f=e.target.files&&e.target.files[0];
+    e.target.value="";
+    if(f) importProject(f);
+  });
+
+  /* outils */
+  $("btn-pick").addEventListener("click",function(){ setTool(tool==="pick"?"nav":"pick"); });
+  $("btn-add").addEventListener("click",function(){ setTool(tool==="add"?"nav":"add"); });
+  $("btn-rm").addEventListener("click",function(){ setTool(tool==="rm"?"nav":"rm"); });
+  $("tip-x").addEventListener("click",function(){ $("tip").hidden=true; });
+
+  /* réglages du repère */
+  function live(id,label,fmt,set){
+    $(id).addEventListener("input",function(){
+      var l=selected(); if(!l) return;
+      var v=parseFloat(this.value);
+      set(l,v); $(label).textContent=fmt(v);
+      invalidate(l); renderNomen(); syncTuneStatOnly(); redraw();
+    });
+  }
+  live("r-thr","v-thr",function(v){ return v.toFixed(2); },function(l,v){ l.thr=v; });
+  live("r-pen","v-pen",function(v){ return v.toFixed(2); },function(l,v){ l.pen=v; });
+  live("r-nms","v-nms",function(v){ return Math.round(v*100)+" %"; },function(l,v){ l.nms=v; });
+  $("c-rot").addEventListener("change",function(){ var l=selected(); if(l){ l.rot=this.checked; hintRecount(); } });
+  $("c-mir").addEventListener("change",function(){ var l=selected(); if(l){ l.mir=this.checked; hintRecount(); } });
+  $("s-scale").addEventListener("change",function(){ var l=selected(); if(l){ l.scaleMode=this.value; hintRecount(); } });
+  $("btn-recount").addEventListener("click",function(){ var l=selected(); if(l) runLegend(l); });
+  $("btn-del").addEventListener("click",function(){
+    var l=selected(); if(!l) return;
+    legends=legends.filter(function(x){ return x.id!==l.id; });
+    selId=legends.length?legends[0].id:null;
+    renderNomen(); syncTune(); redraw();
+  });
+
+  /* image analysée */
+  $("s-dpi").addEventListener("change",function(){
+    if(pdfDoc) renderPage(pageNum);
+    else if(src.demo) tip("Démonstration","La finesse s'applique aux PDF ouverts. Le plan de démonstration a une résolution fixe.");
+  });
+  var inkT=null;
+  $("r-ink").addEventListener("input",function(){
+    clearTimeout(inkT);
+    var v=parseInt(this.value,10);
+    $("v-ink").textContent=v>0?String(v):"auto";
+    inkT=setTimeout(async function(){
+      if(!src.canvas) return;
+      setStatus("Nouveau seuil d'encrage…",true);
+      inkCanvas=null; binarize(); pushPageToWorker(); redraw();
+      await recountAll();
+      setStatus("Seuil d'encrage : "+src.thr,false);
+    },260);
+  });
+
+  /* vue */
+  $("z-in").addEventListener("click",function(){ var s=stageSize(); zoomAt(s.w/2,s.h/2,1.3); });
+  $("z-out").addEventListener("click",function(){ var s=stageSize(); zoomAt(s.w/2,s.h/2,1/1.3); });
+  $("z-fit").addEventListener("click",function(){ fitView(); redraw(); });
+  $("p-prev").addEventListener("click",function(){ if(pdfDoc) renderPage(pageNum-1); });
+  $("p-next").addEventListener("click",function(){ if(pdfDoc) renderPage(pageNum+1); });
+  $("t-marks").addEventListener("click",function(){
+    showMarks=!showMarks; this.classList.toggle("on",showMarks); redraw();
+  });
+  $("t-ink").addEventListener("click",function(){
+    showInk=!showInk; this.classList.toggle("on",showInk); redraw();
+  });
+
+  /* textes */
+  $("btn-tcount").addEventListener("click",function(){
+    var v=$("t-needle").value.trim();
+    if(!v){ $("t-stat").textContent="Saisissez un libellé."; return; }
+    var l=newTextLegend(v,$("t-word").checked,$("t-regex").checked);
+    if(l) $("t-stat").textContent=l.err?l.err:(countOf(l)+" occurrence(s) sur ce folio.");
+  });
+  $("t-needle").addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ e.preventDefault(); $("btn-tcount").click(); }
+  });
+  $("btn-tbatch").addEventListener("click",function(){
+    var lines=$("t-batch").value.split(/\r?\n/).map(function(s){ return s.trim(); })
+              .filter(function(s){ return s.length; });
+    if(!lines.length){ tip("Liste vide","Saisissez un libellé par ligne."); return; }
+    lines.forEach(function(s){ newTextLegend(s,$("t-word").checked,$("t-regex").checked); });
+    renderNomen(); redraw();
+    tip("Repères créés",lines.length+" libellé(s) comptés sur ce folio.");
+  });
+
+  /* export */
+  $("x-csv-sum").addEventListener("click",exportCsvSummary);
+  $("x-csv-det").addEventListener("click",exportCsvDetail);
+  $("x-dxf-pts").addEventListener("click",exportDxfPoints);
+  $("x-dxf-geo").addEventListener("click",exportDxfGeometry);
+  $("x-png").addEventListener("click",exportPng);
+  $("x-save").addEventListener("click",exportProject);
+  $("btn-allpages").addEventListener("click",countAllPages);
+
+  initStage();
+  initCurve();
+  setTool("nav");
+}
+function syncTuneStatOnly(){
+  var l=selected(); if(!l||l.kind==="text") return;
+  var r=legendRes(l);
+  $("tune-stat").textContent=r.cands.length
+    ? (r.cands.length+" candidats analysés · "+countOf(l)+" retenus"+(l.lastMs?" · "+l.lastMs+" ms":""))
+    : "Aucun candidat.";
+  drawCurve();
+}
+function hintRecount(){
+  $("tune-stat").textContent="Réglage modifié — cliquez « Relancer la détection ».";
+  $("btn-recount").classList.add("primary");
+}
+
+(async function boot(){
+  initUI();
+  try{
+    await loadDemo();
+  }catch(e){
+    setStatus("Démarrage incomplet : "+(e&&e.message||e),false);
+    $("drop").hidden=false;
+  }
+})();
+</script>
